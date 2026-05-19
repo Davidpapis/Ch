@@ -1,0 +1,6 @@
+{
+  "name": "Gestor de Presupuestos de Reformas",
+  "description": "Aplicación interactiva para gestionar presupuestos por secciones con cálculos de inversión, beneficio y costes, y generación de presupuestos profesionales para clientes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
