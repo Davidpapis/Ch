@@ -370,10 +370,22 @@ export function LandingPanel({
             }
           });
           
-          return {
+          const updatedItem = {
             ...it,
             ...cleanFields
           };
+
+          // Business logic check: enforce automatic transit state
+          const todayStr = dateInfo.todayStr;
+          if (updatedItem.availability !== 'disponible') {
+            if (updatedItem.deliveryDate) {
+              updatedItem.availability = updatedItem.deliveryDate < todayStr ? 'retrasado' : 'pedido';
+            } else {
+              updatedItem.availability = 'pedido';
+            }
+          }
+
+          return updatedItem;
         });
         
         return { ...s, items: updatedItems };
@@ -1434,17 +1446,22 @@ export function LandingPanel({
                       {/* Campos de Edición Logística */}
                       <div className="space-y-3.5">
                         <div className="grid grid-cols-2 gap-4">
-                          {/* Disponibilidad (Estado) */}
+                          {/* Disponibilidad (Estado Automático) */}
                           <div>
                             <label className="block text-slate-500 font-bold mb-1">Estado de Pedido</label>
-                            <select
-                              value={logisticsCrmModal.availability}
-                              onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, availability: e.target.value as any } : null)}
-                              className="w-full p-2 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none font-bold text-xs"
-                            >
-                              <option value="pedido">Pedido</option>
-                              <option value="retrasado">Retrasado ⚠️</option>
-                            </select>
+                            <div className="w-full p-2 border border-brand-sand-dark rounded-xl bg-slate-50 dark:bg-brand-sand font-bold text-xs flex items-center justify-between text-brand-navy">
+                              {logisticsCrmModal.availability === 'retrasado' ? (
+                                <span className="text-red-600 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                                  Retrasado (Fecha vencida)
+                                </span>
+                              ) : (
+                                <span className="text-brand-olive-dark flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-brand-olive"></span>
+                                  Pedido (En fecha)
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           {/* Fecha Estimada de Entrega */}
@@ -1452,7 +1469,19 @@ export function LandingPanel({
                             <label className="block text-slate-500 font-bold mb-1">Fecha de Entrega</label>
                             <DatePicker
                               value={logisticsCrmModal.deliveryDate || ''}
-                              onChange={val => setLogisticsCrmModal(prev => prev ? { ...prev, deliveryDate: val } : null)}
+                              onChange={val => setLogisticsCrmModal(prev => {
+                                if (!prev) return null;
+                                const todayStr = dateInfo.todayStr;
+                                let autoAvailability: 'pedido' | 'retrasado' = 'pedido';
+                                if (val && val < todayStr) {
+                                  autoAvailability = 'retrasado';
+                                }
+                                return { 
+                                  ...prev, 
+                                  deliveryDate: val,
+                                  availability: autoAvailability
+                                };
+                              })}
                             />
                           </div>
                         </div>

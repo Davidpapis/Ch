@@ -256,13 +256,30 @@ export function ExcelGrid({
     field: K,
     value: BudgetItem[K]
   ) => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
     const updated = sections.map(sec => {
       if (sec.id === sectionId) {
         return {
           ...sec,
           items: sec.items.map(item => {
             if (item.id === itemId) {
-              return { ...item, [field]: value };
+              const updatedItem = { ...item, [field]: value };
+              
+              // Business logic check: enforce automatic transit state
+              if (updatedItem.availability !== 'disponible') {
+                if (updatedItem.deliveryDate) {
+                  updatedItem.availability = updatedItem.deliveryDate < todayStr ? 'retrasado' : 'pedido';
+                } else {
+                  // Keep whatever is set (e.g. default to 'pedido')
+                }
+              }
+              
+              return updatedItem;
             }
             return item;
           })
@@ -1391,9 +1408,52 @@ export function ExcelGrid({
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
                   <DatePicker
                     value={logisticsModalItem.deliveryDate || ''}
-                    onChange={val => setLogisticsModalItem(prev => prev ? { ...prev, deliveryDate: val } : null)}
+                    onChange={val => setLogisticsModalItem(prev => {
+                      if (!prev) return null;
+                      const today = new Date();
+                      const year = today.getFullYear();
+                      const month = String(today.getMonth() + 1).padStart(2, '0');
+                      const day = String(today.getDate()).padStart(2, '0');
+                      const todayStr = `${year}-${month}-${day}`;
+                      let autoAvailability: 'pedido' | 'retrasado' = 'pedido';
+                      if (val && val < todayStr) {
+                        autoAvailability = 'retrasado';
+                      }
+                      return { 
+                        ...prev, 
+                        deliveryDate: val,
+                        availability: autoAvailability
+                      };
+                    })}
                   />
                 </div>
+
+                {/* Status Badge */}
+                {logisticsModalItem.deliveryDate && (
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado de Envío (Automático)</label>
+                    <div className="w-full bg-slate-50 dark:bg-brand-sand border border-brand-sand-dark rounded-xl px-3 py-2 text-xs flex items-center justify-between text-brand-navy font-bold">
+                      {(() => {
+                        const today = new Date();
+                        const year = today.getFullYear();
+                        const month = String(today.getMonth() + 1).padStart(2, '0');
+                        const day = String(today.getDate()).padStart(2, '0');
+                        const todayStr = `${year}-${month}-${day}`;
+                        return logisticsModalItem.deliveryDate < todayStr ? (
+                          <span className="text-red-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                            Retrasado (Fecha vencida)
+                          </span>
+                        ) : (
+                          <span className="text-brand-olive-dark flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-brand-olive"></span>
+                            Pedido (En fecha)
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
 
                 {/* Logistics Call Log / Annotations */}
                 <div className="space-y-1">
