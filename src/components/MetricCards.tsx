@@ -27,10 +27,10 @@ export function MetricCards({ totalInvestment, totalBudget, totalProfit }: Metri
       value: formatCurrency(totalBudget),
       description: 'Importe facturado al cliente',
       icon: DollarSign,
-      colorClass: 'bg-white text-slate-900 border-slate-250/80 shadow-xs hover:border-slate-300 font-sans',
-      iconBg: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-      titleColor: 'text-slate-500 font-semibold uppercase tracking-wider text-xs',
-      valColor: 'text-2xl font-bold text-slate-900 font-display mt-1'
+      colorClass: 'bg-white text-brand-navy border-brand-sand-dark shadow-xs hover:border-brand-terracotta/40 font-sans',
+      iconBg: 'bg-brand-sand text-brand-terracotta border border-brand-sand-dark',
+      titleColor: 'text-slate-450 font-semibold uppercase tracking-wider text-[10px]',
+      valColor: 'text-2xl font-bold text-brand-navy font-display mt-1'
     },
     {
       id: 'total-investment',
@@ -38,10 +38,10 @@ export function MetricCards({ totalInvestment, totalBudget, totalProfit }: Metri
       value: formatCurrency(totalInvestment),
       description: 'Gastos materiales y mano obra',
       icon: Wallet,
-      colorClass: 'bg-white text-slate-900 border-slate-250/80 shadow-xs hover:border-slate-300 font-sans',
-      iconBg: 'bg-slate-100 text-slate-600 border border-slate-200/60',
-      titleColor: 'text-slate-500 font-semibold uppercase tracking-wider text-xs',
-      valColor: 'text-2xl font-bold text-slate-900 font-display mt-1'
+      colorClass: 'bg-white text-brand-navy border-brand-sand-dark shadow-xs hover:border-brand-olive/40 font-sans',
+      iconBg: 'bg-brand-sand text-brand-olive border border-brand-sand-dark',
+      titleColor: 'text-slate-450 font-semibold uppercase tracking-wider text-[10px]',
+      valColor: 'text-2xl font-bold text-brand-navy font-display mt-1'
     },
     {
       id: 'total-profit',
@@ -49,10 +49,10 @@ export function MetricCards({ totalInvestment, totalBudget, totalProfit }: Metri
       value: formatCurrency(totalProfit),
       description: 'Ganancia neta del proyecto',
       icon: TrendingUp,
-      colorClass: 'bg-emerald-50/50 text-emerald-800 border-emerald-100/90 shadow-xs hover:border-emerald-200 font-sans',
-      iconBg: 'bg-emerald-500 text-white shadow-xs',
-      titleColor: 'text-emerald-700 font-semibold uppercase tracking-wider text-xs',
-      valColor: 'text-2xl font-bold text-emerald-800 font-display mt-1'
+      colorClass: 'bg-brand-sand/50 text-brand-navy border-brand-sand-dark shadow-xs hover:border-brand-terracotta/40 font-sans',
+      iconBg: 'bg-brand-terracotta text-white shadow-xs',
+      titleColor: 'text-brand-terracotta font-semibold uppercase tracking-wider text-[10px]',
+      valColor: 'text-2xl font-bold text-brand-navy font-display mt-1'
     },
     {
       id: 'profit-margin',
@@ -60,9 +60,9 @@ export function MetricCards({ totalInvestment, totalBudget, totalProfit }: Metri
       value: `${profitMargin.toFixed(1)}%`,
       description: 'Porcentaje de rentabilidad neta',
       icon: Percent,
-      colorClass: 'bg-emerald-600 text-white border-emerald-600 shadow-md hover:bg-emerald-640 font-sans',
+      colorClass: 'bg-brand-navy text-white border-brand-navy shadow-md hover:bg-brand-navy-dark font-sans',
       iconBg: 'bg-white/10 text-white',
-      titleColor: 'text-emerald-100 opacity-90 font-semibold uppercase tracking-wider text-xs',
+      titleColor: 'text-brand-sand opacity-90 font-semibold uppercase tracking-wider text-[10px]',
       valColor: 'text-2xl font-extrabold text-white font-display mt-1'
     },
   ];
