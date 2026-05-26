@@ -1,19 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Premium Nordic & Mediterranean Colors */
+  --color-brand-sand: #FAF6F0;
+  --color-brand-sand-light: #FCFAF8;
+  --color-brand-sand-dark: #EFEAE2;
+  --color-brand-terracotta: #C97A64;
+  --color-brand-terracotta-light: #D59482;
+  --color-brand-terracotta-dark: #AB5E49;
+  --color-brand-olive: #6B7F67;
+  --color-brand-olive-light: #8A9A86;
+  --color-brand-olive-dark: #50614E;
+  --color-brand-navy: #1F3E50;
+  --color-brand-navy-light: #345D74;
+  --color-brand-navy-dark: #142835;
+  --color-brand-charcoal: #2A3439;
 }
 
 @layer base {
   body {
-    @apply font-sans antialiased text-slate-800 bg-slate-50/50;
+    @apply font-sans antialiased text-brand-charcoal bg-[#F7F4EF];
   }
 }
 
-/* Hide editor elements during printing to generate a flawless PDF receipt */
+/* Custom Scrollbar for a luxurious feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF6F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8D2C4;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C97A64;
+}
+
+/* Glassmorphism utility */
+.premium-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 234, 226, 0.5);
+}
+
+/* Animation slow pulsing */
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Print: page margin and element visibility */
+@page {
+  margin: 20mm 15mm 20mm 15mm;
+}
+
 @media print {
   .no-print {
     display: none !important;
@@ -21,8 +69,58 @@
   .print-only {
     display: block !important;
   }
+
   body {
-    background: white !important;
-    color: black !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Section headings: never leave a title alone at the bottom of a page */
+  .avoid-page-break-after {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Individual table rows and text elements */
+  .avoid-page-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* 
+    The lookbook card grid is hidden by the JS beforeprint handler and replaced
+    with a <table> whose <tr> rows contain 2 cards each.
+    Table rows are the only reliable cross-browser page-break-inside: avoid element
+    (works in Safari WebKit, Chrome Blink, and Firefox Gecko).
+    No additional CSS magic needed here.
+  */
+
+  /* The injected print table: ensure full width and correct row spacing */
+  .lookbook-print-table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 14px !important;
+    table-layout: fixed !important;
+  }
+
+  .lookbook-print-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .lookbook-print-table td {
+    vertical-align: top !important;
+    padding: 0 8px 0 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Card images inside print table: fixed height, stacked above content */
+  .lookbook-print-table img {
+    display: block !important;
+    width: 100% !important;
+    height: 140px !important;
+    max-height: 140px !important;
+    object-fit: cover !important;
+    border-radius: 12px 12px 0 0 !important;
   }
 }
