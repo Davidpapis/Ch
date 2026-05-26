@@ -141,7 +141,7 @@ export function DatePicker({ value, onChange, className = '', placeholder = 'Sel
   };
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div className="relative w-full">
       {/* Trigger Input Panel */}
       <div
         onClick={() => setIsOpen(!isOpen)}
@@ -153,85 +153,94 @@ export function DatePicker({ value, onChange, className = '', placeholder = 'Sel
         <CalendarIcon className="w-3.5 h-3.5 text-slate-400 dark:text-brand-navy-light shrink-0 ml-2" />
       </div>
 
-      {/* Floating Popover Calendar */}
+      {/* Centered Modal Calendar Overlay */}
       {isOpen && (
-        <div className="absolute left-0 mt-1.5 w-64 z-50 bg-white dark:bg-brand-sand-light border border-brand-sand-dark dark:border-brand-sand-dark rounded-2xl shadow-xl p-3 select-none premium-glass animate-in fade-in slide-in-from-top-1 duration-150">
-          
-          {/* Calendar Header: Month, Year and Arrows */}
-          <div className="flex items-center justify-between mb-3.5">
-            <button
-              onClick={handlePrevMonth}
-              className="p-1 rounded-lg hover:bg-brand-sand dark:hover:bg-brand-sand text-slate-500 dark:text-brand-charcoal transition"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 backdrop-blur-xs"
+          onClick={() => setIsOpen(false)}
+        >
+          {/* Calendar Card container */}
+          <div 
+            className="w-72 bg-white dark:bg-brand-sand-light border border-brand-sand-dark dark:border-brand-sand-dark rounded-3xl shadow-2xl p-4 select-none premium-glass transform scale-100 transition-all duration-200 animate-in zoom-in-95"
+            onClick={e => e.stopPropagation()}
+          >
             
-            <span className="font-serif font-bold text-sm text-brand-navy dark:text-brand-navy-dark">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
-            
-            <button
-              onClick={handleNextMonth}
-              className="p-1 rounded-lg hover:bg-brand-sand dark:hover:bg-brand-sand text-slate-500 dark:text-brand-charcoal transition"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Weekday letters */}
-          <div className="grid grid-cols-7 gap-1 text-center mb-1">
-            {WEEKDAYS.map((day, idx) => (
-              <span key={idx} className="text-[10px] font-bold font-mono text-slate-400 dark:text-brand-navy-light uppercase tracking-wider">
-                {day}
+            {/* Calendar Header: Month, Year and Arrows */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-lg hover:bg-brand-sand dark:hover:bg-brand-sand text-slate-500 dark:text-brand-charcoal transition"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <span className="font-serif font-bold text-base text-brand-navy dark:text-brand-navy-dark">
+                {MONTH_NAMES[viewMonth]} {viewYear}
               </span>
-            ))}
+              
+              <button
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-lg hover:bg-brand-sand dark:hover:bg-brand-sand text-slate-500 dark:text-brand-charcoal transition"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Weekday letters */}
+            <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
+              {WEEKDAYS.map((day, idx) => (
+                <span key={idx} className="text-[10px] font-bold font-mono text-slate-400 dark:text-brand-navy-light uppercase tracking-wider">
+                  {day}
+                </span>
+              ))}
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {getCalendarDays().map(({ date, isCurrentMonth }, idx) => {
+                const isToday = isSameDay(date, today);
+                const isSelected = parsedDate ? isSameDay(date, parsedDate) : false;
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => selectDate(date)}
+                    className={`
+                      h-8 w-8 text-[11px] rounded-lg font-mono font-semibold flex items-center justify-center transition-all cursor-pointer
+                      ${isCurrentMonth 
+                        ? 'text-brand-charcoal dark:text-brand-charcoal' 
+                        : 'text-slate-300 dark:text-slate-600'
+                      }
+                      ${isToday && !isSelected
+                        ? 'border border-brand-terracotta text-brand-terracotta dark:text-brand-terracotta font-bold'
+                        : ''
+                      }
+                      ${isSelected
+                        ? 'bg-brand-terracotta text-white font-bold shadow-md shadow-brand-terracotta/20 scale-105'
+                        : 'hover:bg-brand-sand dark:hover:bg-brand-sand hover:scale-105'
+                      }
+                    `}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick helper footer */}
+            <div className="mt-4 pt-3 border-t border-brand-sand-dark dark:border-brand-sand-dark flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 dark:text-brand-navy-light">
+                Hoy: <b className="font-mono text-brand-navy dark:text-brand-navy-dark">{today.getDate()}/{today.getMonth() + 1}/{today.getFullYear()}</b>
+              </span>
+              <button
+                onClick={selectToday}
+                className="px-2.5 py-1 rounded-lg bg-brand-sand dark:bg-brand-sand text-brand-navy dark:text-brand-navy-dark hover:bg-brand-sand-dark hover:text-brand-navy-dark font-bold transition"
+              >
+                Hoy
+              </button>
+            </div>
+
           </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {getCalendarDays().map(({ date, isCurrentMonth }, idx) => {
-              const isToday = isSameDay(date, today);
-              const isSelected = parsedDate ? isSameDay(date, parsedDate) : false;
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => selectDate(date)}
-                  className={`
-                    h-7 w-7 text-[11px] rounded-lg font-mono font-medium flex items-center justify-center transition-all cursor-pointer
-                    ${isCurrentMonth 
-                      ? 'text-brand-charcoal dark:text-brand-charcoal' 
-                      : 'text-slate-300 dark:text-slate-600'
-                    }
-                    ${isToday && !isSelected
-                      ? 'border border-brand-terracotta/70 text-brand-terracotta dark:text-brand-terracotta font-bold'
-                      : ''
-                    }
-                    ${isSelected
-                      ? 'bg-brand-terracotta text-white font-bold shadow-md shadow-brand-terracotta/20 scale-105'
-                      : 'hover:bg-brand-sand dark:hover:bg-brand-sand hover:scale-105'
-                    }
-                  `}
-                >
-                  {date.getDate()}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick helper footer */}
-          <div className="mt-3 pt-2.5 border-t border-brand-sand-dark dark:border-brand-sand-dark flex items-center justify-between text-[10px]">
-            <span className="text-slate-400 dark:text-brand-navy-light">
-              Hoy: <b className="font-mono text-brand-navy dark:text-brand-navy-dark">{today.getDate()}/{today.getMonth() + 1}/{today.getFullYear()}</b>
-            </span>
-            <button
-              onClick={selectToday}
-              className="px-2 py-1 rounded bg-brand-sand dark:bg-brand-sand text-brand-navy dark:text-brand-navy-dark hover:bg-brand-sand-dark hover:text-brand-navy-dark font-bold transition"
-            >
-              Hoy
-            </button>
-          </div>
-
         </div>
       )}
     </div>
