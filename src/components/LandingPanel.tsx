@@ -316,7 +316,6 @@ export function LandingPanel({
   const { todayOrders, tomorrowOrders, weekOrders, alertOrders } = useMemo(() => {
     const todayStr = dateInfo.todayStr;
     const tomorrowStr = dateInfo.tomorrowStr;
-    const sevenDaysLaterStr = dateInfo.sevenDaysLaterStr;
     
     const todayList: typeof filteredCrmOrders = [];
     const tomorrowList: typeof filteredCrmOrders = [];
@@ -325,19 +324,16 @@ export function LandingPanel({
     
     filteredCrmOrders.forEach(ord => {
       const isOverdue = ord.deliveryDate && ord.deliveryDate < todayStr;
-      const isDelayed = ord.availability === 'retrasado';
       const isUnscheduled = !ord.deliveryDate;
       
-      if (isDelayed || isOverdue || isUnscheduled) {
+      if (isUnscheduled || isOverdue) {
         alertList.push(ord);
       } else if (ord.deliveryDate === todayStr) {
         todayList.push(ord);
       } else if (ord.deliveryDate === tomorrowStr) {
         tomorrowList.push(ord);
-      } else if (ord.deliveryDate > tomorrowStr && ord.deliveryDate <= sevenDaysLaterStr) {
-        weekList.push(ord);
       } else {
-        // Any other future date
+        // Any future date
         weekList.push(ord);
       }
     });
