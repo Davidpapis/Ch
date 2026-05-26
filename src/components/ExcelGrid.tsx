@@ -1167,7 +1167,8 @@ export function ExcelGrid({
                                   </td>
 
                                   {/* Investment cost unit */}
-                                  <td className="py-2 px-2 text-sm text-right">
+                                  {/* Cost unit input */}
+                                  <td className="py-2 px-2 text-xs text-right">
                                     <div className="relative flex items-center justify-end">
                                       <input
                                         type="number"
@@ -1178,9 +1179,8 @@ export function ExcelGrid({
                                           const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
                                           updateItemField(sec.id, item.id, 'cost', isNaN(val) ? 0 : val);
                                         }}
-                                        className="w-full text-right bg-transparent border border-transparent focus:border-brand-terracotta hover:border-brand-sand-dark focus:bg-white pl-2 pr-6 py-1.5 rounded font-mono font-medium focus:outline-none"
+                                        className="w-full text-right bg-transparent border border-transparent focus:border-brand-terracotta hover:border-brand-sand-dark focus:bg-white pl-2 pr-2 py-1.5 rounded font-mono font-medium text-xs focus:outline-none"
                                       />
-                                      <span className="absolute right-2 text-slate-400 pointer-events-none text-[10px] font-mono">€</span>
                                     </div>
                                   </td>
 
@@ -1190,7 +1190,7 @@ export function ExcelGrid({
                                   </td>
 
                                   {/* Sale price unit */}
-                                  <td className="py-2 px-2 text-sm text-right">
+                                  <td className="py-2 px-2 text-xs text-right">
                                     <div className="relative flex items-center justify-end">
                                       <input
                                         type="number"
@@ -1201,9 +1201,8 @@ export function ExcelGrid({
                                           const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
                                           updateItemField(sec.id, item.id, 'price', isNaN(val) ? 0 : val);
                                         }}
-                                        className="w-full text-right bg-transparent border border-transparent focus:border-brand-terracotta hover:border-brand-sand-dark focus:bg-white pl-2 pr-6 py-1.5 rounded font-mono text-brand-navy font-bold focus:outline-none"
+                                        className="w-full text-right bg-transparent border border-transparent focus:border-brand-terracotta hover:border-brand-sand-dark focus:bg-white pl-2 pr-2 py-1.5 rounded font-mono text-brand-navy font-bold text-xs focus:outline-none"
                                       />
-                                      <span className="absolute right-2 text-brand-terracotta pointer-events-none text-[10px] font-mono">€</span>
                                     </div>
                                   </td>
 

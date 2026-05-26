@@ -102,6 +102,14 @@ html.dark .hover\:bg-\[\#FAF8F5\]:hover {
   background-color: var(--brand-sand-light) !important;
 }
 
+html.dark .bg-slate-50\/40,
+html.dark .bg-brand-sand\/10,
+html.dark .bg-slate-50\/50,
+html.dark .bg-brand-sand-light\/50 {
+  background-color: transparent !important;
+}
+
+
 
 html.dark .border-brand-sand-dark {
   border-color: var(--brand-sand-dark) !important;
