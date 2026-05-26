@@ -29,6 +29,7 @@ import {
   Hash
 } from 'lucide-react';
 import { Budget, Supplier, BudgetSection } from '../types';
+import { DatePicker } from './DatePicker';
 
 interface LandingPanelProps {
   budgets: Budget[];
@@ -1453,11 +1454,9 @@ export function LandingPanel({
                           {/* Fecha Estimada de Entrega */}
                           <div>
                             <label className="block text-slate-500 font-bold mb-1">Fecha de Entrega</label>
-                            <input
-                              type="date"
+                            <DatePicker
                               value={logisticsCrmModal.deliveryDate || ''}
-                              onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, deliveryDate: e.target.value } : null)}
-                              className="w-full p-2 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none font-mono text-xs text-brand-navy"
+                              onChange={val => setLogisticsCrmModal(prev => prev ? { ...prev, deliveryDate: val } : null)}
                             />
                           </div>
                         </div>

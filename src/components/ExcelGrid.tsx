@@ -33,6 +33,7 @@ import {
   Truck
 } from 'lucide-react';
 import { BudgetSection, BudgetItem, Supplier, BudgetMetadata } from '../types';
+import { DatePicker } from './DatePicker';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ExcelGridProps {
@@ -535,20 +536,16 @@ export function ExcelGrid({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Fecha Emisión:</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={metadata.budgetDate || ''}
-                    onChange={e => updateMetadataField('budgetDate', e.target.value)}
-                    className="w-full bg-[#FCFAF8] border border-brand-sand-dark rounded-lg px-3 py-1.5 text-xs text-brand-navy outline-none focus:border-brand-terracotta transition font-mono font-semibold"
+                    onChange={val => updateMetadataField('budgetDate', val)}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Validez hasta:</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={metadata.validUntil || ''}
-                    onChange={e => updateMetadataField('validUntil', e.target.value)}
-                    className="w-full bg-[#FCFAF8] border border-brand-sand-dark rounded-lg px-3 py-1.5 text-xs text-brand-navy outline-none focus:border-brand-terracotta transition font-mono font-semibold"
+                    onChange={val => updateMetadataField('validUntil', val)}
                   />
                 </div>
               </div>
@@ -1392,11 +1389,9 @@ export function ExcelGrid({
                 {/* Estimated Delivery Date */}
                 <div className="space-y-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
-                  <input
-                    type="date"
-                    value={logisticsModalItem.deliveryDate}
-                    onChange={e => setLogisticsModalItem(prev => prev ? { ...prev, deliveryDate: e.target.value } : null)}
-                    className="w-full bg-white border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none focus:border-brand-terracotta font-mono transition"
+                  <DatePicker
+                    value={logisticsModalItem.deliveryDate || ''}
+                    onChange={val => setLogisticsModalItem(prev => prev ? { ...prev, deliveryDate: val } : null)}
                   />
                 </div>
 
