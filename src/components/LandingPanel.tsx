@@ -780,7 +780,7 @@ export function LandingPanel({
                         return (
                           <tr 
                             key={b.id} 
-                            onClick={() => onSelectBudget(b.id)}
+                            onClick={() => { onSelectBudget(b.id); onEnterEditor(); }}
                             className="hover:bg-brand-sand/15 transition duration-150 cursor-pointer"
                           >
                             <td className="py-3.5 px-3 font-mono font-bold text-brand-navy">

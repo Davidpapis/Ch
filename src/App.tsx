@@ -362,7 +362,7 @@ export default function App() {
               {theme === 'light' ? (
                 <Moon className="w-4 h-4 transition-all duration-350 transform hover:rotate-12" />
               ) : (
-                <Sun className="w-4 h-4 transition-all duration-350 transform hover:rotate-45" />
+                <Sun className="w-4 h-4 text-amber-400 transition-all duration-350 transform hover:rotate-45" />
               )}
             </button>
 
