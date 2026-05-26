@@ -48,6 +48,10 @@ export function LandingPanel({
   const [activeTab, setActiveTab] = useState<'projects' | 'crm' | 'suppliers'>('projects');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [yearFilter, setYearFilter] = useState<string>('todos');
+  const [quarterFilter, setQuarterFilter] = useState<string>('todos');
+  const [crmViewMode, setCrmViewMode] = useState<'grouped' | 'list'>('grouped');
+  const [crmSearchQuery, setCrmSearchQuery] = useState('');
   
   // New budget dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -71,6 +75,32 @@ export function LandingPanel({
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
   };
 
+  // Helper to extract quarter from date string YYYY-MM-DD
+  const getQuarterFromDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const month = parseInt(dateStr.substring(5, 7), 10);
+    if (isNaN(month)) return null;
+    if (month >= 1 && month <= 3) return 'T1';
+    if (month >= 4 && month <= 6) return 'T2';
+    if (month >= 7 && month <= 9) return 'T3';
+    if (month >= 10 && month <= 12) return 'T4';
+    return null;
+  };
+
+  // Derive unique years dynamically from budgets list
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    budgets.forEach(b => {
+      if (b.metadata.budgetDate) {
+        const year = b.metadata.budgetDate.substring(0, 4);
+        if (year && !isNaN(Number(year))) {
+          years.add(year);
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [budgets]);
+
   // Financial KPIs Calculations across all budgets
   const kpis = useMemo(() => {
     let totalPVP = 0;
@@ -82,8 +112,8 @@ export function LandingPanel({
     budgets.forEach(b => {
       // Calculate budgets by status
       if (b.status === 'aprobado') approvedCount++;
-      else if (b.status === 'pendiente' || b.status === 'en_progreso') pendingCount++;
-      else draftCount++;
+      else if (b.status === 'pendiente') pendingCount++;
+      else if (b.status === 'borrador') draftCount++;
 
       // Accumulate financials
       b.sections.forEach(s => {
@@ -121,6 +151,7 @@ export function LandingPanel({
       quantity: number;
       distributor: string;
       availability: 'pedido' | 'retrasado';
+      reference?: string;
     }> = [];
 
     budgets.forEach(b => {
@@ -135,7 +166,8 @@ export function LandingPanel({
               description: it.description,
               quantity: it.quantity,
               distributor: it.distributor,
-              availability: it.availability
+              availability: it.availability,
+              reference: it.reference
             });
           }
         });
@@ -156,11 +188,22 @@ export function LandingPanel({
       const matchStatus = 
         statusFilter === 'todos' || 
         b.status === statusFilter || 
-        (statusFilter === 'pendientes' && (b.status === 'pendiente' || b.status === 'en_progreso'));
+        (statusFilter === 'pendientes' && b.status === 'pendiente');
 
-      return matchSearch && matchStatus;
+      let matchYear = true;
+      if (yearFilter !== 'todos' && b.metadata.budgetDate) {
+        matchYear = b.metadata.budgetDate.substring(0, 4) === yearFilter;
+      }
+
+      let matchQuarter = true;
+      if (quarterFilter !== 'todos' && b.metadata.budgetDate) {
+        const q = getQuarterFromDate(b.metadata.budgetDate);
+        matchQuarter = q === quarterFilter;
+      }
+
+      return matchSearch && matchStatus && matchYear && matchQuarter;
     });
-  }, [budgets, searchTerm, statusFilter]);
+  }, [budgets, searchTerm, statusFilter, yearFilter, quarterFilter]);
 
   // Filtered Suppliers for the Directory List
   const filteredSuppliers = useMemo(() => {
@@ -175,6 +218,46 @@ export function LandingPanel({
       );
     });
   }, [suppliers, supplierSearch]);
+
+  // Filtered pending orders based on CRM search query
+  const filteredCrmOrders = useMemo(() => {
+    return pendingOrders.filter(ord => {
+      const q = crmSearchQuery.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        ord.description.toLowerCase().includes(q) ||
+        ord.projectName.toLowerCase().includes(q) ||
+        ord.distributor.toLowerCase().includes(q) ||
+        (ord.reference && ord.reference.toLowerCase().includes(q))
+      );
+    });
+  }, [pendingOrders, crmSearchQuery]);
+
+  // Pending orders grouped by project
+  const ordersGroupedByProject = useMemo(() => {
+    const groups: {
+      [budgetId: string]: {
+        projectName: string;
+        budgetNumber: string;
+        budgetId: string;
+        items: typeof pendingOrders;
+      }
+    } = {};
+
+    filteredCrmOrders.forEach(ord => {
+      if (!groups[ord.budgetId]) {
+        groups[ord.budgetId] = {
+          projectName: ord.projectName,
+          budgetNumber: ord.budgetNumber,
+          budgetId: ord.budgetId,
+          items: []
+        };
+      }
+      groups[ord.budgetId].items.push(ord);
+    });
+
+    return Object.values(groups);
+  }, [filteredCrmOrders]);
 
   // 1. Create a New Empty Budget
   const handleCreateBudgetSubmit = (e: React.FormEvent) => {
@@ -366,9 +449,15 @@ export function LandingPanel({
         </div>
 
         {/* KPI: Pending logistic items across all budgets */}
-        <div className="bg-white border border-brand-sand-dark p-5 rounded-2xl flex items-center justify-between shadow-xs">
+        <div 
+          onClick={() => {
+            setActiveTab('crm');
+            setCrmViewMode('grouped');
+          }}
+          className="bg-white border border-brand-sand-dark p-5 rounded-2xl flex items-center justify-between shadow-xs hover:border-brand-terracotta cursor-pointer transition-all duration-200 group active:scale-98"
+        >
           <div>
-            <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 uppercase block">Pedidos Pendientes</span>
+            <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 uppercase block group-hover:text-brand-terracotta transition">Pedidos Pendientes</span>
             <span className="text-xl md:text-2xl font-bold font-display text-brand-navy block mt-1 font-mono">
               {pendingOrders.length} Artículos
             </span>
@@ -376,7 +465,7 @@ export function LandingPanel({
               En tránsito por recibir
             </span>
           </div>
-          <div className="p-3 bg-brand-sand rounded-xl text-brand-olive shrink-0">
+          <div className="p-3 bg-brand-sand rounded-xl text-brand-olive group-hover:bg-brand-terracotta/10 group-hover:text-brand-terracotta shrink-0 transition-all duration-200">
             <Truck className="w-6 h-6" />
           </div>
         </div>
@@ -463,7 +552,7 @@ export function LandingPanel({
             <div className="space-y-4">
               
               {/* Search & Filter Toolbar */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col lg:flex-row gap-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                   <input
@@ -475,16 +564,43 @@ export function LandingPanel({
                   />
                 </div>
                 
-                <select
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                  className="bg-[#FCFAF8] border border-brand-sand-dark rounded-xl px-4 py-2 text-xs text-brand-navy outline-none font-semibold focus:border-brand-terracotta"
-                >
-                  <option value="todos">Todos los Estados</option>
-                  <option value="aprobado">🟢 Aprobados</option>
-                  <option value="pendientes">🟡 Pendientes / En Proceso</option>
-                  <option value="borrador">⚪ Borradores</option>
-                </select>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="bg-[#FCFAF8] border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none font-semibold focus:border-brand-terracotta cursor-pointer"
+                  >
+                    <option value="todos">Todos los Estados</option>
+                    <option value="borrador">⚪ Borradores</option>
+                    <option value="pendiente">🟡 Pendientes</option>
+                    <option value="aprobado">🟢 Aprobados</option>
+                    <option value="terminado">🟢 Terminados</option>
+                    <option value="rechazado">🔴 Rechazados</option>
+                  </select>
+
+                  <select
+                    value={yearFilter}
+                    onChange={e => setYearFilter(e.target.value)}
+                    className="bg-[#FCFAF8] border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none font-semibold focus:border-brand-terracotta cursor-pointer"
+                  >
+                    <option value="todos">Todos los Años</option>
+                    {availableYears.map(yr => (
+                      <option key={yr} value={yr}>{yr}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={quarterFilter}
+                    onChange={e => setQuarterFilter(e.target.value)}
+                    className="bg-[#FCFAF8] border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none font-semibold focus:border-brand-terracotta cursor-pointer"
+                  >
+                    <option value="todos">Todos los Trimestres</option>
+                    <option value="T1">T1 (Ene - Mar)</option>
+                    <option value="T2">T2 (Abr - Jun)</option>
+                    <option value="T3">T3 (Jul - Sep)</option>
+                    <option value="T4">T4 (Oct - Dic)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Budgets List Grid/Table */}
@@ -542,14 +658,15 @@ export function LandingPanel({
                                 onChange={e => handleStatusChange(b.id, e.target.value as Budget['status'], e)}
                                 className={`text-[10px] font-bold rounded-full px-2.5 py-1 border outline-none font-mono ${
                                   b.status === 'aprobado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                  b.status === 'pendiente' || b.status === 'en_progreso' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                  b.status === 'pendiente' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                  b.status === 'terminado' ? 'bg-brand-olive/10 text-brand-olive border-brand-olive/20' :
                                   'bg-slate-50 text-slate-600 border-slate-200'
                                 }`}
                               >
                                 <option value="borrador">⚪ Borrador</option>
-                                <option value="en_progreso">🟡 En Proceso</option>
                                 <option value="pendiente">🟡 Pendiente</option>
                                 <option value="aprobado">🟢 Aprobado</option>
+                                <option value="terminado">🟢 Terminado</option>
                                 <option value="rechazado">🔴 Rechazado</option>
                               </select>
                             </td>
@@ -590,66 +707,217 @@ export function LandingPanel({
 
           {/* B. CRM LOGISTICS TAB (ORDERS OVERVIEW) */}
           {activeTab === 'crm' && (
-            <div className="space-y-4">
-              <div className="bg-[#FAF7F2] border border-brand-sand-dark/60 p-4 rounded-xl">
-                <h4 className="font-serif font-bold text-brand-navy text-sm flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-brand-terracotta" />
-                  Control Unificado de Mercancías & Pedidos Pendientes
-                </h4>
-                <p className="text-slate-500 text-xs mt-1 pl-5.5">
-                  Listado global que rastrea todos los artículos catalogados como <b>"Pedido"</b> o <b>"Retrasado"</b> a través de todos tus proyectos activos de interiorismo. Ideal para contactar a tus distribuidores consolidados del mes.
-                </p>
+            <div className="space-y-6 animate-fadeIn">
+              
+              {/* Header Selector dual-view */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FAF7F2] border border-brand-sand-dark/60 p-5 rounded-2xl shadow-xs">
+                <div className="space-y-1">
+                  <h4 className="font-serif font-bold text-brand-navy text-sm flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-brand-terracotta" />
+                    Gestión Logística & Control de Mercancías
+                  </h4>
+                  <p className="text-slate-500 text-xs pl-5.5">
+                    Controla y supervisa los artículos de todos tus proyectos activos en estado <b>"Pedido"</b> o <b>"Retrasado"</b>.
+                  </p>
+                </div>
+
+                {/* Alternador de Vista Estilo Premium */}
+                <div className="flex items-center bg-white border border-brand-sand-dark rounded-xl p-1 shrink-0 shadow-xs self-start md:self-auto">
+                  <button
+                    onClick={() => setCrmViewMode('grouped')}
+                    className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                      crmViewMode === 'grouped'
+                        ? 'bg-brand-navy text-white shadow-xs'
+                        : 'text-slate-500 hover:text-brand-navy'
+                    }`}
+                  >
+                    <Briefcase className="w-3.5 h-3.5" />
+                    Agrupado por Proyecto
+                  </button>
+                  <button
+                    onClick={() => setCrmViewMode('list')}
+                    className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                      crmViewMode === 'list'
+                        ? 'bg-brand-navy text-white shadow-xs'
+                        : 'text-slate-500 hover:text-brand-navy'
+                    }`}
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    Lista unificada
+                  </button>
+                </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-brand-sand-dark text-brand-olive font-bold uppercase tracking-wider text-[10px] pb-2 font-mono">
-                      <th className="py-3 px-3">Artículo / Descripción</th>
-                      <th className="py-3 px-3">Proyecto Asociado</th>
-                      <th className="py-3 px-3">Distribuidor</th>
-                      <th className="py-3 px-3 text-right">Cant.</th>
-                      <th className="py-3 px-3">Estado Logístico</th>
-                      <th className="py-3 px-3 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-sand-dark/50 text-brand-charcoal font-medium">
-                    {pendingOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-10 text-center text-slate-400 font-serif italic text-sm">
-                          🎉 ¡Enhorabuena! No hay pedidos pendientes de entrega o retrasos en curso.
-                        </td>
+              {/* Barra de búsqueda para CRM si hay artículos en total */}
+              {pendingOrders.length > 0 && (
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={crmSearchQuery}
+                    onChange={e => setCrmSearchQuery(e.target.value)}
+                    placeholder="Buscar por artículo, proyecto, distribuidor, referencia..."
+                    className="w-full pl-10 pr-4 py-2.5 border border-brand-sand-dark rounded-xl text-xs text-brand-navy outline-none bg-[#FCFAF8] focus:border-brand-terracotta transition"
+                  />
+                  {crmSearchQuery && (
+                    <button
+                      onClick={() => setCrmSearchQuery('')}
+                      className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-brand-navy"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Contenido según vista seleccionada */}
+              {filteredCrmOrders.length === 0 ? (
+                <div className="text-center py-16 bg-white border border-brand-sand-dark rounded-2xl shadow-xs p-6 space-y-3">
+                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-6 h-6" />
+                  </div>
+                  <h5 className="font-serif font-bold text-brand-navy text-base">¡Logística al día!</h5>
+                  <p className="text-slate-400 text-xs max-w-md mx-auto">
+                    {crmSearchQuery 
+                      ? 'No hay artículos en tránsito que coincidan con los criterios de búsqueda actuales.'
+                      : 'No tienes ningún artículo marcado como "Pedido" o "Retrasado" en ninguna de tus obras de interiorismo activas.'
+                    }
+                  </p>
+                  {crmSearchQuery && (
+                    <button
+                      onClick={() => setCrmSearchQuery('')}
+                      className="text-xs font-bold text-brand-terracotta hover:underline mt-2 block mx-auto cursor-pointer"
+                    >
+                      Limpiar Filtro de Búsqueda
+                    </button>
+                  )}
+                </div>
+              ) : crmViewMode === 'grouped' ? (
+                /* VISTA AGRUPADA POR PROYECTO */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {ordersGroupedByProject.map(group => (
+                    <div 
+                      key={group.budgetId} 
+                      className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col hover:border-brand-olive transition-all duration-200"
+                    >
+                      {/* Cabecera del Proyecto */}
+                      <div className="bg-brand-sand/15 border-b border-brand-sand-dark/60 p-4 flex justify-between items-center">
+                        <div className="space-y-0.5">
+                          <h4 className="font-serif font-bold text-brand-navy text-sm">{group.projectName}</h4>
+                          <span className="text-[10px] font-mono text-brand-olive font-bold block">{group.budgetNumber}</span>
+                        </div>
+                        <span className="bg-brand-terracotta/10 text-brand-terracotta text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full shrink-0">
+                          {group.items.length} {group.items.length === 1 ? 'artículo' : 'artículos'}
+                        </span>
+                      </div>
+
+                      {/* Lista de Artículos */}
+                      <div className="p-4 flex-1 space-y-3">
+                        {group.items.map(it => (
+                          <div 
+                            key={it.itemId} 
+                            className="flex items-start justify-between gap-3 text-xs p-3 bg-brand-sand/5 hover:bg-brand-sand/15 border border-brand-sand-dark/30 rounded-xl transition duration-150"
+                          >
+                            <div className="space-y-1.5">
+                              <p className="font-bold text-brand-navy leading-snug">{it.description}</p>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {it.reference && (
+                                  <span className="bg-brand-navy/5 text-brand-navy border border-brand-navy/10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                                    REF: {it.reference}
+                                  </span>
+                                )}
+                                <span className="bg-brand-sand-dark/40 text-brand-navy text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                                  {it.distributor}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 space-y-1.5">
+                              <span className="font-mono font-bold text-brand-navy block">{it.quantity} uds</span>
+                              <span className={`inline-flex items-center gap-1 text-[9px] font-bold rounded-full px-2 py-0.5 ${
+                                it.availability === 'retrasado'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-100'
+                              }`}>
+                                {it.availability === 'retrasado' ? <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> : <Clock className="w-2.5 h-2.5 shrink-0" />}
+                                {it.availability === 'retrasado' ? 'RETRASADO' : 'PEDIDO'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Pie con Enlace Directo */}
+                      <div className="bg-[#FAF7F2] border-t border-brand-sand-dark/40 p-3 text-right">
+                        <button
+                          onClick={() => { onSelectBudget(group.budgetId); onEnterEditor(); }}
+                          className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
+                        >
+                          Gestionar Obra / Abrir Excel
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* VISTA DE LISTA UNIFICADA (TABLA PLANA) */
+                <div className="overflow-x-auto border border-brand-sand-dark rounded-2xl bg-white shadow-xs">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-brand-sand-dark text-brand-olive font-bold uppercase tracking-wider text-[10px] pb-2 font-mono bg-brand-sand/10">
+                        <th className="py-3 px-4">Artículo / Descripción</th>
+                        <th className="py-3 px-4">Obra / Proyecto</th>
+                        <th className="py-3 px-4">Distribuidor</th>
+                        <th className="py-3 px-4 text-right">Cant.</th>
+                        <th className="py-3 px-4">Estado Logístico</th>
+                        <th className="py-3 px-4 text-right">Acciones</th>
                       </tr>
-                    ) : (
-                      pendingOrders.map((ord, idx) => (
-                        <tr key={`${ord.budgetId}-${ord.itemId}-${idx}`} className="hover:bg-brand-sand/10">
-                          <td className="py-3 px-3 text-brand-navy font-semibold">{ord.description}</td>
-                          <td className="py-3 px-3 text-slate-600 font-serif font-bold">{ord.projectName}</td>
-                          <td className="py-3 px-3">
+                    </thead>
+                    <tbody className="divide-y divide-brand-sand-dark/50 text-brand-charcoal font-medium">
+                      {filteredCrmOrders.map((ord, idx) => (
+                        <tr key={`${ord.budgetId}-${ord.itemId}-${idx}`} className="hover:bg-brand-sand/15 transition duration-150">
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-brand-navy">{ord.description}</div>
+                            {ord.reference && (
+                              <span className="inline-block mt-1 bg-brand-navy/5 text-brand-navy border border-brand-navy/10 text-[9px] font-mono px-1.5 py-0.5 rounded font-bold">
+                                REF: {ord.reference}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-serif font-bold text-brand-navy">{ord.projectName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">{ord.budgetNumber}</div>
+                          </td>
+                          <td className="py-3 px-4">
                             <span className="bg-brand-sand px-2 py-0.5 rounded text-[10px] font-mono text-brand-navy font-bold">{ord.distributor}</span>
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-brand-navy">{ord.quantity}</td>
-                          <td className="py-3 px-3">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${ord.availability === 'retrasado' ? 'bg-amber-50 text-amber-700 font-bold border border-amber-200' : 'bg-blue-50 text-blue-700 font-bold border border-blue-200'}`}>
-                              {ord.availability === 'retrasado' ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                          <td className="py-3 px-4 text-right font-mono font-bold text-brand-navy">{ord.quantity}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${
+                              ord.availability === 'retrasado'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                : 'bg-blue-50 text-blue-700 border border-blue-100'
+                            }`}>
+                              {ord.availability === 'retrasado' ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
                               {ord.availability.toUpperCase()}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-right">
+                          <td className="py-3 px-4 text-right">
                             <button
                               onClick={() => { onSelectBudget(ord.budgetId); onEnterEditor(); }}
-                              className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy transition cursor-pointer"
+                              className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
                             >
                               Ir al Proyecto
                               <ArrowRight className="w-3 h-3" />
                             </button>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
@@ -794,9 +1062,9 @@ export function LandingPanel({
                     className="w-full bg-white border border-brand-sand-dark rounded-xl px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-terracotta font-semibold"
                   >
                     <option value="borrador">⚪ Borrador</option>
-                    <option value="en_progreso">🟡 En Proceso</option>
                     <option value="pendiente">🟡 Pendiente</option>
                     <option value="aprobado">🟢 Aprobado</option>
+                    <option value="terminado">🟢 Terminado</option>
                   </select>
                 </div>
               </div>

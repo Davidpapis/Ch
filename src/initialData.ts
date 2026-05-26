@@ -39,7 +39,7 @@ export const INITIAL_SECTIONS: BudgetSection[] = [
         price: 390.00,
         quantity: 1,
         distributor: 'Kave Home',
-        availability: 'entregado',
+        availability: 'disponible',
         imageUrl: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80'
       },
       {
@@ -85,7 +85,7 @@ export const INITIAL_SECTIONS: BudgetSection[] = [
         price: 2150.00,
         quantity: 1,
         distributor: 'Neolith Surfaces',
-        availability: 'entregado',
+        availability: 'disponible',
         imageUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80'
       },
       {
@@ -115,7 +115,7 @@ export const INITIAL_SECTIONS: BudgetSection[] = [
         price: 360.00,
         quantity: 3,
         distributor: 'Westwing Professional',
-        availability: 'entregado',
+        availability: 'disponible',
         imageUrl: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80'
       }
     ]
@@ -131,7 +131,7 @@ export const INITIAL_SECTIONS: BudgetSection[] = [
         price: 320.00,
         quantity: 2,
         distributor: 'Porcelanosa Madrid',
-        availability: 'entregado',
+        availability: 'disponible',
         imageUrl: 'https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=600&q=80'
       },
       {
@@ -187,7 +187,7 @@ export const INITIAL_SECTIONS: BudgetSection[] = [
         price: 155.00,
         quantity: 2,
         distributor: 'Kave Home',
-        availability: 'entregado',
+        availability: 'disponible',
         imageUrl: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=600&q=80'
       },
       {
@@ -197,7 +197,7 @@ export const INITIAL_SECTIONS: BudgetSection[] = [
         price: 85.00,
         quantity: 2,
         distributor: 'Vibia Iluminación',
-        availability: 'entregado',
+        availability: 'disponible',
         imageUrl: 'https://images.unsplash.com/photo-1517999144091-3d9dca6d1e43?auto=format&fit=crop&w=600&q=80'
       }
     ]
@@ -230,7 +230,7 @@ export const INITIAL_METADATA: BudgetMetadata = {
 
 export const IMPORTED_LOS_NARANJOS_BUDGET: Budget = {
     id: "budget-los-naranjos",
-    status: "en_progreso",
+    status: "pendiente",
     updatedAt: new Date().toISOString(),
     metadata: {
     "projectName": "LOS NARANJOS NUEVA ANDALUCIA",
@@ -1393,7 +1393,7 @@ export const IMPORTED_LOS_NARANJOS_BUDGET: Budget = {
 export const INITIAL_BUDGETS: Budget[] = [
   {
     id: 'budget-1',
-    status: 'en_progreso',
+    status: 'pendiente',
     updatedAt: new Date().toISOString(),
     metadata: INITIAL_METADATA,
     sections: INITIAL_SECTIONS
@@ -1424,7 +1424,7 @@ export const INITIAL_BUDGETS: Budget[] = [
             price: 890.00,
             quantity: 1,
             distributor: 'Kave Home',
-            availability: 'entregado',
+            availability: 'disponible',
             imageUrl: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80'
           },
           {
@@ -1434,7 +1434,7 @@ export const INITIAL_BUDGETS: Budget[] = [
             price: 1100.00,
             quantity: 1,
             distributor: 'Kave Home',
-            availability: 'entregado',
+            availability: 'disponible',
             imageUrl: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80'
           },
           {
@@ -1444,7 +1444,7 @@ export const INITIAL_BUDGETS: Budget[] = [
             price: 150.00,
             quantity: 6,
             distributor: 'Westwing Professional',
-            availability: 'entregado',
+            availability: 'disponible',
             imageUrl: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=600&q=80'
           }
         ]

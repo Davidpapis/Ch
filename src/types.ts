@@ -10,8 +10,9 @@ export interface BudgetItem {
   price: number; // Precio de venta unitario
   quantity: number; // Cantidad
   distributor: string; // Distribuidor/Origen
-  availability: 'disponible' | 'pedido' | 'retrasado' | 'entregado'; // Estado actual
+  availability: 'disponible' | 'pedido' | 'retrasado'; // Estado actual (sin entregado)
   imageUrl?: string; // Fotografía conceptual del artículo/mobiliario
+  reference?: string; // Referencia técnica para uso interno
 }
 
 export interface BudgetSection {
@@ -59,7 +60,7 @@ export interface Budget {
   id: string;
   metadata: BudgetMetadata;
   sections: BudgetSection[];
-  status: 'borrador' | 'en_progreso' | 'pendiente' | 'aprobado' | 'rechazado';
+  status: 'borrador' | 'pendiente' | 'aprobado' | 'terminado' | 'rechazado';
   updatedAt: string;
 }
 

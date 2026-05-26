@@ -134,7 +134,7 @@ export function ExcelImporter({ sections, onUpdateSections, targetSectionId, onC
           const rawStatus = (cells[colMapping.availability] || '').toLowerCase().trim();
           if (rawStatus.includes('pedid') || rawStatus.includes('order')) availabilityVal = 'pedido';
           else if (rawStatus.includes('retr') || rawStatus.includes('delay')) availabilityVal = 'retrasado';
-          else if (rawStatus.includes('entr') || rawStatus.includes('deliv')) availabilityVal = 'entregado';
+          else if (rawStatus.includes('entr') || rawStatus.includes('deliv')) availabilityVal = 'disponible';
         }
 
         // Section/Ambiente parsing

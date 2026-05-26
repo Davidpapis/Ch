@@ -23,14 +23,13 @@ import {
   PlusCircle,
   Sparkles,
   Calculator,
-
-
   Building2,
   User,
   Calendar,
   Quote,
   Info,
-  Briefcase
+  Briefcase,
+  Eye
 } from 'lucide-react';
 import { BudgetSection, BudgetItem, Supplier, BudgetMetadata } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -63,6 +62,9 @@ export function ExcelGrid({
 
   // Track image selector popup state
   const [imageSelectorItem, setImageSelectorItem] = useState<{ sectionId: string; itemId: string; currentUrl?: string } | null>(null);
+
+  // Track lightbox image URL preview
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
   // Track which section header is being edited
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -352,14 +354,6 @@ export function ExcelGrid({
             Modifica las celdas directamente. Costes, beneficios e impuestos se recalculan al instante.
           </p>
         </div>
-
-        <button
-          onClick={addNewSection}
-          className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl text-sm font-semibold text-white bg-brand-olive hover:bg-brand-olive-dark active:scale-97 shadow-md tracking-tight transition cursor-pointer"
-        >
-          <FolderPlus className="w-4 h-4" />
-          Añadir Sección (Ambiente)
-        </button>
       </div>
 
       {/* COLLAPSIBLE CLIENT & PROPOSAL METADATA CONFIGURATION PANEL */}
@@ -966,27 +960,28 @@ export function ExcelGrid({
                     transition={{ duration: 0.2 }}
                   >
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse table-fixed min-w-[1200px]">
+                      <table className="w-full text-left border-collapse table-fixed min-w-[1250px]">
                         <thead>
                           <tr className="bg-brand-sand-light text-slate-400 text-[10px] font-bold tracking-wider uppercase border-b border-brand-sand-dark font-mono">
                             <th className="py-2.5 px-3 w-[40px] text-center">Nº</th>
-                            <th className="py-2.5 px-3 w-[70px] text-center">Foto</th>
-                            <th className="py-2.5 px-3 w-[25%] text-left">Descripción del Artículo / Material</th>
-                            <th className="py-2.5 px-3 w-[15%] text-left">Distribuidor</th>
-                            <th className="py-2.5 px-3 w-[130px] text-center">Disponibilidad</th>
-                            <th className="py-2.5 px-3 w-[70px] text-right">Cant.</th>
-                            <th className="py-2.5 px-3 w-[110px] text-right">Coste Unit.</th>
-                            <th className="py-2.5 px-3 w-[110px] text-right bg-slate-50/50">Coste Total</th>
-                            <th className="py-2.5 px-3 w-[110px] text-right">PVP Unit.</th>
-                            <th className="py-2.5 px-3 w-[110px] text-right bg-brand-sand-light/50">PVP Total</th>
-                            <th className="py-2.5 px-3 w-[100px] text-right">Beneficio</th>
+                            <th className="py-2.5 px-3 w-[80px] text-center">Foto</th>
+                            <th className="py-2.5 px-3 w-[23%] text-left">Descripción del Artículo / Material</th>
+                            <th className="py-2.5 px-3 w-[110px] text-left">Referencia</th>
+                            <th className="py-2.5 px-3 w-[13%] text-left">Distribuidor</th>
+                            <th className="py-2.5 px-3 w-[120px] text-center">Disponibilidad</th>
+                            <th className="py-2.5 px-3 w-[60px] text-right">Cant.</th>
+                            <th className="py-2.5 px-3 w-[95px] text-right">Coste Unit.</th>
+                            <th className="py-2.5 px-3 w-[95px] text-right bg-slate-50/50">Coste Total</th>
+                            <th className="py-2.5 px-3 w-[95px] text-right">PVP Unit.</th>
+                            <th className="py-2.5 px-3 w-[95px] text-right bg-brand-sand-light/50">PVP Total</th>
+                            <th className="py-2.5 px-3 w-[85px] text-right">Beneficio</th>
                             <th className="py-2.5 px-2 w-[40px] text-center"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {sec.items.length === 0 ? (
                             <tr>
-                              <td colSpan={12} className="py-8 text-center text-slate-400 text-sm font-serif">
+                              <td colSpan={13} className="py-8 text-center text-slate-400 text-sm font-serif">
                                 No hay artículos en esta sección. Haz clic en{' '}
                                 <button 
                                   onClick={() => addItemToSection(sec.id)}
@@ -1019,19 +1014,30 @@ export function ExcelGrid({
                                     <div className="flex items-center justify-center">
                                       {item.imageUrl ? (
                                         <div 
-                                          onClick={() => setImageSelectorItem({ sectionId: sec.id, itemId: item.id, currentUrl: item.imageUrl })}
-                                          className="relative group/img cursor-pointer w-9 h-9 rounded-lg overflow-hidden border border-brand-sand-dark flex items-center justify-center bg-brand-sand/20"
-                                          title="Cambiar fotografía"
+                                          className="relative group/img w-10 h-10 rounded-lg overflow-hidden border border-brand-sand-dark flex items-center justify-center bg-brand-sand/20"
                                         >
                                           <img src={item.imageUrl} className="w-full h-full object-cover" />
-                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-                                            <Edit className="w-3 h-3 text-white" />
+                                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover/img:opacity-100 flex items-center justify-center gap-1 transition-opacity duration-200">
+                                            <button
+                                              onClick={() => setLightboxImageUrl(item.imageUrl || null)}
+                                              className="p-1 bg-white/20 hover:bg-white/40 text-white rounded transition hover:scale-110 cursor-pointer"
+                                              title="Ver grande"
+                                            >
+                                              <Eye className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              onClick={() => setImageSelectorItem({ sectionId: sec.id, itemId: item.id, currentUrl: item.imageUrl })}
+                                              className="p-1 bg-white/20 hover:bg-white/40 text-white rounded transition hover:scale-110 cursor-pointer"
+                                              title="Cambiar fotografía"
+                                            >
+                                              <Camera className="w-3.5 h-3.5" />
+                                            </button>
                                           </div>
                                         </div>
                                       ) : (
                                         <button 
                                           onClick={() => setImageSelectorItem({ sectionId: sec.id, itemId: item.id })}
-                                          className="w-9 h-9 rounded-lg border border-dashed border-slate-350 hover:border-brand-terracotta text-slate-400 hover:text-brand-terracotta flex items-center justify-center bg-brand-sand-light/35 transition cursor-pointer"
+                                          className="w-10 h-10 rounded-lg border border-dashed border-slate-350 hover:border-brand-terracotta text-slate-400 hover:text-brand-terracotta flex items-center justify-center bg-brand-sand-light/35 transition cursor-pointer"
                                           title="Añadir fotografía"
                                         >
                                           <Camera className="w-4 h-4" />
@@ -1051,6 +1057,17 @@ export function ExcelGrid({
                                     />
                                   </td>
 
+                                  {/* Technical Reference Code */}
+                                  <td className="py-2 px-2 text-sm">
+                                    <input
+                                      type="text"
+                                      placeholder="REF-0000"
+                                      value={item.reference || ''}
+                                      onChange={e => updateItemField(sec.id, item.id, 'reference', e.target.value)}
+                                      className="w-full bg-transparent border border-transparent focus:border-brand-terracotta hover:border-brand-sand-dark focus:bg-white px-2 py-1.5 rounded text-slate-700 font-mono text-[11px] transition duration-100 placeholder:text-slate-300 focus:outline-none"
+                                    />
+                                  </td>
+
                                   {/* Distributor */}
                                   <td className="py-2 px-2 text-sm">
                                     <input
@@ -1063,25 +1080,22 @@ export function ExcelGrid({
                                     />
                                   </td>
 
-                                  {/* Availability Selector (Colored Badges) */}
+                                  {/* Availability Selector (Colored Badges - no entregado) */}
                                   <td className="py-2 px-2 text-center text-xs">
                                     <select
                                       value={item.availability || 'disponible'}
                                       onChange={e => updateItemField(sec.id, item.id, 'availability', e.target.value as BudgetItem['availability'])}
-                                      className={`mx-auto block text-center py-1 px-2.5 rounded-lg font-bold uppercase font-mono tracking-wide text-[10px] border cursor-pointer focus:outline-none transition ${
+                                      className={`mx-auto block text-center py-1 px-2 border border-brand-sand-dark/65 rounded-lg font-bold uppercase font-mono tracking-wide text-[10px] cursor-pointer focus:outline-none transition-all duration-150 ${
                                         item.availability === 'disponible' 
-                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/60' 
                                           : item.availability === 'pedido'
-                                          ? 'bg-sky-50 text-sky-700 border-sky-200'
-                                          : item.availability === 'retrasado'
-                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                          : 'bg-brand-olive/10 text-brand-olive border-brand-olive/20'
+                                          ? 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100/60'
+                                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/60'
                                       }`}
                                     >
                                       <option value="disponible">Disponible</option>
                                       <option value="pedido">Pedido</option>
                                       <option value="retrasado">Retrasado</option>
-                                      <option value="entregado">Entregado</option>
                                     </select>
                                   </td>
 
@@ -1205,6 +1219,51 @@ export function ExcelGrid({
           );
         })}
       </div>
+
+      {/* Botón Añadir Sección Nueva al final */}
+      <div className="flex justify-center pt-6 pb-12 no-print">
+        <button
+          onClick={addNewSection}
+          className="inline-flex items-center gap-2.5 py-3 px-8 rounded-xl text-sm font-bold text-white bg-brand-olive hover:bg-brand-olive-dark active:scale-97 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-102"
+        >
+          <FolderPlus className="w-5 h-5" />
+          Añadir Sección (Ambiente)
+        </button>
+      </div>
+
+      {/* Lightbox Modal Preview */}
+      <AnimatePresence>
+        {lightboxImageUrl && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxImageUrl(null)}
+            className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out no-print"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 shadow-2xl" 
+              onClick={e => e.stopPropagation()}
+            >
+              <img 
+                src={lightboxImageUrl} 
+                className="max-w-full max-h-[80vh] object-contain rounded-xl select-none" 
+                alt="Vista ampliada"
+              />
+              <button 
+                onClick={() => setLightboxImageUrl(null)}
+                className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full transition shadow-md border border-white/10 cursor-pointer"
+                title="Cerrar vista grande"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Elegant Image Selector/Upload Dialog Modal (no-print) */}
       {imageSelectorItem && (
