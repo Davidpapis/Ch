@@ -24,7 +24,9 @@ import {
   Briefcase,
   X,
   FileCheck2,
-  Trash
+  Trash,
+  Calendar,
+  Hash
 } from 'lucide-react';
 import { Budget, Supplier, BudgetSection } from '../types';
 
@@ -69,6 +71,23 @@ export function LandingPanel({
   const [supEmail, setSupEmail] = useState('');
   const [supCategory, setSupCategory] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
+
+  // Logistics interactive CRM modal state
+  const [logisticsCrmModal, setLogisticsCrmModal] = useState<{
+    budgetId: string;
+    sectionId: string;
+    itemId: string;
+    description: string;
+    quantity: number;
+    distributor: string;
+    availability: 'pedido' | 'retrasado';
+    reference?: string;
+    deliveryDate?: string;
+    trackingNumber?: string;
+    carrierName?: string;
+    logisticsNotes?: string;
+    projectName: string;
+  } | null>(null);
 
   // Currency Formatter
   const formatEuro = (val: number) => {
@@ -140,18 +159,23 @@ export function LandingPanel({
     };
   }, [budgets]);
 
-  // Aggregate pending logictics ('pedido' or 'retrasado') across ALL projects
+  // Aggregate pending logistics ('pedido' or 'retrasado') across ALL projects
   const pendingOrders = useMemo(() => {
     const ordersList: Array<{
       budgetId: string;
       budgetNumber: string;
       projectName: string;
+      sectionId: string;
       itemId: string;
       description: string;
       quantity: number;
       distributor: string;
       availability: 'pedido' | 'retrasado';
       reference?: string;
+      deliveryDate?: string;
+      trackingNumber?: string;
+      carrierName?: string;
+      logisticsNotes?: string;
     }> = [];
 
     budgets.forEach(b => {
@@ -162,12 +186,17 @@ export function LandingPanel({
               budgetId: b.id,
               budgetNumber: b.metadata.budgetNumber,
               projectName: b.metadata.projectName,
+              sectionId: s.id,
               itemId: it.id,
               description: it.description,
               quantity: it.quantity,
               distributor: it.distributor,
               availability: it.availability,
-              reference: it.reference
+              reference: it.reference,
+              deliveryDate: it.deliveryDate,
+              trackingNumber: it.trackingNumber,
+              carrierName: it.carrierName,
+              logisticsNotes: it.logisticsNotes
             });
           }
         });
@@ -258,6 +287,109 @@ export function LandingPanel({
 
     return Object.values(groups);
   }, [filteredCrmOrders]);
+
+  // 0. Logistics Date Calculations & Groupings
+  const dateInfo = useMemo(() => {
+    const today = new Date();
+    const formatDate = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    
+    const todayStr = formatDate(today);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowStr = formatDate(tomorrow);
+    
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(today.getDate() + 7);
+    const sevenDaysLaterStr = formatDate(sevenDaysLater);
+    
+    return { todayStr, tomorrowStr, sevenDaysLaterStr };
+  }, []);
+
+  const { todayOrders, tomorrowOrders, weekOrders, alertOrders } = useMemo(() => {
+    const todayStr = dateInfo.todayStr;
+    const tomorrowStr = dateInfo.tomorrowStr;
+    const sevenDaysLaterStr = dateInfo.sevenDaysLaterStr;
+    
+    const todayList: typeof filteredCrmOrders = [];
+    const tomorrowList: typeof filteredCrmOrders = [];
+    const weekList: typeof filteredCrmOrders = [];
+    const alertList: typeof filteredCrmOrders = [];
+    
+    filteredCrmOrders.forEach(ord => {
+      const isOverdue = ord.deliveryDate && ord.deliveryDate < todayStr;
+      const isDelayed = ord.availability === 'retrasado';
+      const isUnscheduled = !ord.deliveryDate;
+      
+      if (isDelayed || isOverdue || isUnscheduled) {
+        alertList.push(ord);
+      } else if (ord.deliveryDate === todayStr) {
+        todayList.push(ord);
+      } else if (ord.deliveryDate === tomorrowStr) {
+        tomorrowList.push(ord);
+      } else if (ord.deliveryDate > tomorrowStr && ord.deliveryDate <= sevenDaysLaterStr) {
+        weekList.push(ord);
+      } else {
+        // Any other future date
+        weekList.push(ord);
+      }
+    });
+    
+    return {
+      todayOrders: todayList,
+      tomorrowOrders: tomorrowList,
+      weekOrders: weekList,
+      alertOrders: alertList
+    };
+  }, [filteredCrmOrders, dateInfo]);
+
+  // Update logistics fields on a specific budget item from CRM view
+  const handleUpdateItemLogistics = (
+    budgetId: string,
+    sectionId: string,
+    itemId: string,
+    fields: Partial<Pick<Budget['sections'][0]['items'][0], 'deliveryDate' | 'trackingNumber' | 'carrierName' | 'logisticsNotes' | 'availability'>>
+  ) => {
+    const updated = budgets.map(b => {
+      if (b.id !== budgetId) return b;
+      
+      const updatedSections = b.sections.map(s => {
+        if (s.id !== sectionId) return s;
+        
+        const updatedItems = s.items.map(it => {
+          if (it.id !== itemId) return it;
+          
+          // Clean up empty fields to undefined
+          const cleanFields = { ...fields };
+          (Object.keys(cleanFields) as Array<keyof typeof cleanFields>).forEach(key => {
+            if (cleanFields[key] === '') {
+              cleanFields[key] = undefined as any;
+            }
+          });
+          
+          return {
+            ...it,
+            ...cleanFields
+          };
+        });
+        
+        return { ...s, items: updatedItems };
+      });
+      
+      return {
+        ...b,
+        sections: updatedSections,
+        updatedAt: new Date().toISOString()
+      };
+    });
+    
+    onUpdateBudgets(updated);
+  };
 
   // 1. Create a New Empty Budget
   const handleCreateBudgetSubmit = (e: React.FormEvent) => {
@@ -748,6 +880,260 @@ export function LandingPanel({
                 </div>
               </div>
 
+              {/* Calendario & Agenda Logística Widget */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-brand-sand-dark/60 pb-2">
+                  <h4 className="font-serif font-bold text-brand-navy text-xs tracking-wider uppercase flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-brand-terracotta" />
+                    Agenda de Entregas & Entradas Semanales
+                  </h4>
+                  <span className="text-[10px] text-slate-500 font-mono bg-white px-2 py-0.5 rounded border border-brand-sand-dark">
+                    Hoy: {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* COLUMNA 1: ALERTAS (GLOBO ROJO) */}
+                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                    <div className="bg-gradient-to-r from-red-600 to-rose-500 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Incidencias / Alertas
+                      </span>
+                      {alertOrders.length > 0 ? (
+                        <span className="flex h-4 w-4 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-4 w-4 bg-white text-red-600 font-mono font-bold text-[9px] items-center justify-center">
+                            {alertOrders.length}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">0</span>
+                      )}
+                    </div>
+                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
+                      {alertOrders.length === 0 ? (
+                        <div className="text-center py-8 text-slate-400 text-xs italic">Sin alertas ni retrasos</div>
+                      ) : (
+                        alertOrders.map((ord, idx) => {
+                          const isOverdue = ord.deliveryDate && ord.deliveryDate < dateInfo.todayStr;
+                          const isDelayed = ord.availability === 'retrasado';
+                          const isUnscheduled = !ord.deliveryDate;
+                          return (
+                            <div 
+                              key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                              onClick={() => setLogisticsCrmModal({ ...ord })}
+                              className="bg-white border border-red-100 hover:border-red-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="font-bold text-brand-navy text-[11px] group-hover:text-red-600 transition leading-snug line-clamp-2">
+                                  {ord.description}
+                                </span>
+                                <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-red-50 text-red-600 px-1 rounded">
+                                  x{ord.quantity}
+                                </span>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                  <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                  {ord.projectName}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                  {ord.distributor}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
+                                <span className="font-mono text-slate-400 flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                  {ord.deliveryDate ? ord.deliveryDate : 'Sin fecha'}
+                                </span>
+                                <span className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded-full text-[8px] font-bold border border-red-100 flex items-center gap-0.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
+                                  {isDelayed ? 'RETRASADO' : isOverdue ? 'FUERA DE PLAZO' : 'SIN FECHA'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* COLUMNA 2: LLEGA HOY */}
+                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                    <div className="bg-gradient-to-r from-brand-terracotta to-amber-600 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5" />
+                        Llega Hoy
+                      </span>
+                      <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
+                        {todayOrders.length}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
+                      {todayOrders.length === 0 ? (
+                        <div className="text-center py-8 text-slate-400 text-xs italic">Ningún pedido para hoy</div>
+                      ) : (
+                        todayOrders.map((ord, idx) => (
+                          <div 
+                            key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                            onClick={() => setLogisticsCrmModal({ ...ord })}
+                            className="bg-white border border-amber-100 hover:border-amber-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                          >
+                            <div className="flex justify-between items-start gap-1">
+                              <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-terracotta transition leading-snug line-clamp-2">
+                                {ord.description}
+                              </span>
+                              <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-amber-50 text-amber-700 px-1 rounded">
+                                x{ord.quantity}
+                              </span>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                {ord.projectName}
+                              </span>
+                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                {ord.distributor}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
+                              <span className="font-mono text-amber-600 flex items-center gap-0.5">
+                                <Clock className="w-2.5 h-2.5 text-amber-500" />
+                                HOY
+                              </span>
+                              {ord.carrierName && (
+                                <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
+                                  {ord.carrierName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* COLUMNA 3: LLEGA MAÑANA */}
+                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                    <div className="bg-gradient-to-r from-brand-olive to-emerald-700 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Llega Mañana
+                      </span>
+                      <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
+                        {tomorrowOrders.length}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
+                      {tomorrowOrders.length === 0 ? (
+                        <div className="text-center py-8 text-slate-400 text-xs italic">Ningún pedido para mañana</div>
+                      ) : (
+                        tomorrowOrders.map((ord, idx) => (
+                          <div 
+                            key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                            onClick={() => setLogisticsCrmModal({ ...ord })}
+                            className="bg-white border border-emerald-100 hover:border-emerald-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                          >
+                            <div className="flex justify-between items-start gap-1">
+                              <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-olive transition leading-snug line-clamp-2">
+                                {ord.description}
+                              </span>
+                              <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-emerald-50 text-emerald-700 px-1 rounded">
+                                x{ord.quantity}
+                              </span>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                {ord.projectName}
+                              </span>
+                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                {ord.distributor}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
+                              <span className="font-mono text-emerald-600 flex items-center gap-0.5">
+                                <Clock className="w-2.5 h-2.5 text-emerald-500" />
+                                MAÑANA
+                              </span>
+                              {ord.carrierName && (
+                                <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
+                                  {ord.carrierName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* COLUMNA 4: PROXIMAS ENTREGAS */}
+                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                    <div className="bg-gradient-to-r from-brand-navy to-slate-700 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Próximas Semanas
+                      </span>
+                      <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
+                        {weekOrders.length}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
+                      {weekOrders.length === 0 ? (
+                        <div className="text-center py-8 text-slate-400 text-xs italic">Ninguna entrega programada</div>
+                      ) : (
+                        weekOrders.map((ord, idx) => (
+                          <div 
+                            key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                            onClick={() => setLogisticsCrmModal({ ...ord })}
+                            className="bg-white border border-slate-100 hover:border-brand-navy hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                          >
+                            <div className="flex justify-between items-start gap-1">
+                              <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-navy transition leading-snug line-clamp-2">
+                                {ord.description}
+                              </span>
+                              <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-slate-50 text-slate-700 px-1 rounded">
+                                x{ord.quantity}
+                              </span>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                {ord.projectName}
+                              </span>
+                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                {ord.distributor}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold text-slate-400">
+                              <span className="font-mono flex items-center gap-0.5">
+                                <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                {ord.deliveryDate}
+                              </span>
+                              {ord.carrierName && (
+                                <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
+                                  {ord.carrierName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Barra de búsqueda para CRM si hay artículos en total */}
               {pendingOrders.length > 0 && (
                 <div className="relative">
@@ -816,7 +1202,8 @@ export function LandingPanel({
                         {group.items.map(it => (
                           <div 
                             key={it.itemId} 
-                            className="flex items-start justify-between gap-3 text-xs p-3 bg-brand-sand/5 hover:bg-brand-sand/15 border border-brand-sand-dark/30 rounded-xl transition duration-150"
+                            onClick={() => setLogisticsCrmModal({ ...it })}
+                            className="flex items-start justify-between gap-3 text-xs p-3 bg-brand-sand/5 hover:bg-brand-sand/15 border border-brand-sand-dark/30 rounded-xl transition duration-150 cursor-pointer"
                           >
                             <div className="space-y-1.5">
                               <p className="font-bold text-brand-navy leading-snug">{it.description}</p>
@@ -834,14 +1221,19 @@ export function LandingPanel({
 
                             <div className="text-right shrink-0 space-y-1.5">
                               <span className="font-mono font-bold text-brand-navy block">{it.quantity} uds</span>
-                              <span className={`inline-flex items-center gap-1 text-[9px] font-bold rounded-full px-2 py-0.5 ${
-                                it.availability === 'retrasado'
-                                  ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                                  : 'bg-blue-50 text-blue-700 border border-blue-100'
-                              }`}>
-                                {it.availability === 'retrasado' ? <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> : <Clock className="w-2.5 h-2.5 shrink-0" />}
-                                {it.availability === 'retrasado' ? 'RETRASADO' : 'PEDIDO'}
-                              </span>
+                              <div className="space-y-1 text-right">
+                                <span className={`inline-flex items-center gap-1 text-[9px] font-bold rounded-full px-2 py-0.5 ${
+                                  it.availability === 'retrasado'
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                }`}>
+                                  {it.availability === 'retrasado' ? <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> : <Clock className="w-2.5 h-2.5 shrink-0" />}
+                                  {it.availability === 'retrasado' ? 'RETRASADO' : 'PEDIDO'}
+                                </span>
+                                {it.deliveryDate && (
+                                  <span className="block text-[8px] font-mono text-slate-400 text-right">{it.deliveryDate}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -870,6 +1262,7 @@ export function LandingPanel({
                         <th className="py-3 px-4">Obra / Proyecto</th>
                         <th className="py-3 px-4">Distribuidor</th>
                         <th className="py-3 px-4 text-right">Cant.</th>
+                        <th className="py-3 px-4">Fecha Estimada</th>
                         <th className="py-3 px-4">Estado Logístico</th>
                         <th className="py-3 px-4 text-right">Acciones</th>
                       </tr>
@@ -893,6 +1286,9 @@ export function LandingPanel({
                             <span className="bg-brand-sand px-2 py-0.5 rounded text-[10px] font-mono text-brand-navy font-bold">{ord.distributor}</span>
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-bold text-brand-navy">{ord.quantity}</td>
+                          <td className="py-3 px-4 font-mono text-[10px] text-slate-600">
+                            {ord.deliveryDate || <span className="text-slate-400 italic">No programada</span>}
+                          </td>
                           <td className="py-3 px-4">
                             <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${
                               ord.availability === 'retrasado'
@@ -904,18 +1300,218 @@ export function LandingPanel({
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <button
-                              onClick={() => { onSelectBudget(ord.budgetId); onEnterEditor(); }}
-                              className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
-                            >
-                              Ir al Proyecto
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setLogisticsCrmModal({ ...ord })}
+                                className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
+                              >
+                                <Truck className="w-3.5 h-3.5 text-brand-terracotta" />
+                                Logística
+                              </button>
+                              <button
+                                onClick={() => { onSelectBudget(ord.budgetId); onEnterEditor(); }}
+                                className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
+                              >
+                                Ir al Proyecto
+                                <ArrowRight className="w-3 h-3" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* MODAL INTERACTIVO DE LOGÍSTICA CRM */}
+              {logisticsCrmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy/60 backdrop-blur-xs animate-fadeIn">
+                  <div className="bg-white border border-brand-sand-dark shadow-2xl rounded-2xl max-w-lg w-full overflow-hidden flex flex-col hover:border-brand-olive transition duration-200">
+                    {/* Cabecera del Modal */}
+                    <div className="bg-brand-navy text-white px-5 py-4 flex justify-between items-center">
+                      <div className="space-y-0.5">
+                        <h4 className="font-serif font-bold text-sm flex items-center gap-1.5">
+                          <Truck className="w-4 h-4 text-brand-terracotta" />
+                          Agenda y Gestión Logística
+                        </h4>
+                        <p className="text-[10px] text-slate-300 font-medium">
+                          Control de tránsito, seguimiento y reprogramación
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => setLogisticsCrmModal(null)}
+                        className="text-slate-300 hover:text-white p-1 cursor-pointer transition"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Cuerpo del Modal */}
+                    <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs text-brand-navy">
+                      {/* Información del Artículo */}
+                      <div className="bg-brand-sand/15 border border-brand-sand-dark/60 p-4 rounded-xl space-y-2">
+                        <div className="flex justify-between items-start gap-1">
+                          <span className="font-serif font-bold text-sm block leading-snug">
+                            {logisticsCrmModal.description}
+                          </span>
+                          <span className="bg-brand-navy/10 text-brand-navy font-mono font-bold px-2 py-0.5 rounded text-[10px] shrink-0">
+                            {logisticsCrmModal.quantity} uds
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1.5 border-t border-brand-sand-dark/40 text-[10px] text-slate-600 font-medium">
+                          <div>
+                            <span className="text-slate-400 block uppercase font-mono text-[8px] tracking-wider">Obra / Proyecto</span>
+                            <span className="font-semibold text-brand-navy flex items-center gap-1">
+                              <Briefcase className="w-3 h-3 text-brand-olive animate-pulse" />
+                              {logisticsCrmModal.projectName}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block uppercase font-mono text-[8px] tracking-wider">Distribuidor</span>
+                            <span className="font-semibold text-brand-navy flex items-center gap-1">
+                              <Users className="w-3 h-3 text-slate-400" />
+                              {logisticsCrmModal.distributor}
+                            </span>
+                          </div>
+                          {logisticsCrmModal.reference && (
+                            <div className="col-span-2">
+                              <span className="text-slate-400 block uppercase font-mono text-[8px] tracking-wider">Referencia</span>
+                              <span className="font-mono text-brand-navy font-bold">
+                                {logisticsCrmModal.reference}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Campos de Edición Logística */}
+                      <div className="space-y-3.5">
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Disponibilidad (Estado) */}
+                          <div>
+                            <label className="block text-slate-500 font-bold mb-1">Estado de Pedido</label>
+                            <select
+                              value={logisticsCrmModal.availability}
+                              onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, availability: e.target.value as any } : null)}
+                              className="w-full p-2 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none font-bold text-xs"
+                            >
+                              <option value="pedido">Pedido</option>
+                              <option value="retrasado">Retrasado ⚠️</option>
+                            </select>
+                          </div>
+
+                          {/* Fecha Estimada de Entrega */}
+                          <div>
+                            <label className="block text-slate-500 font-bold mb-1">Fecha de Entrega</label>
+                            <input
+                              type="date"
+                              value={logisticsCrmModal.deliveryDate || ''}
+                              onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, deliveryDate: e.target.value } : null)}
+                              className="w-full p-2 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none font-mono text-xs text-brand-navy"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Nombre del Transportista */}
+                          <div>
+                            <label className="block text-slate-500 font-bold mb-1">Transportista / Agencia</label>
+                            <input
+                              type="text"
+                              placeholder="Ej. Seur, DHL, etc."
+                              value={logisticsCrmModal.carrierName || ''}
+                              onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, carrierName: e.target.value } : null)}
+                              className="w-full p-2 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none text-xs"
+                            />
+                          </div>
+
+                          {/* Número de Seguimiento */}
+                          <div>
+                            <label className="block text-slate-500 font-bold mb-1">Nº Seguimiento / Tracking</label>
+                            <input
+                              type="text"
+                              placeholder="Ej. Tracking, referencia de envío"
+                              value={logisticsCrmModal.trackingNumber || ''}
+                              onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, trackingNumber: e.target.value } : null)}
+                              className="w-full p-2 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none font-mono text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Anotaciones de Logística / Historial de Llamadas */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-slate-500 font-bold">Anotaciones / Registro de Llamadas</label>
+                            <span className="text-[10px] text-brand-olive font-medium">Uso interno</span>
+                          </div>
+                          <textarea
+                            placeholder="Ej. Llamado el 25/05: confirmada la salida en reparto de tarde..."
+                            value={logisticsCrmModal.logisticsNotes || ''}
+                            onChange={e => setLogisticsCrmModal(prev => prev ? { ...prev, logisticsNotes: e.target.value } : null)}
+                            className="w-full p-2.5 border border-brand-sand-dark rounded-xl bg-[#FCFAF8] outline-none text-xs h-20 resize-none text-brand-navy"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pie del Modal */}
+                    <div className="bg-[#FAF7F2] border-t border-brand-sand-dark/60 p-4 flex flex-wrap items-center justify-between gap-3">
+                      {/* Botón rápido Marcar como Recibido */}
+                      <button
+                        onClick={() => {
+                          handleUpdateItemLogistics(
+                            logisticsCrmModal.budgetId,
+                            logisticsCrmModal.sectionId,
+                            logisticsCrmModal.itemId,
+                            { 
+                              availability: 'disponible',
+                              carrierName: logisticsCrmModal.carrierName || undefined,
+                              trackingNumber: logisticsCrmModal.trackingNumber || undefined,
+                              deliveryDate: logisticsCrmModal.deliveryDate || undefined,
+                              logisticsNotes: logisticsCrmModal.logisticsNotes || undefined
+                            }
+                          );
+                          setLogisticsCrmModal(null);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl shadow-xs transition duration-150 cursor-pointer flex items-center gap-1.5 text-xs active:scale-95"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Marcar como Recibido
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setLogisticsCrmModal(null)}
+                          className="border border-brand-sand-dark hover:bg-brand-sand/40 text-brand-navy font-bold py-2 px-4 rounded-xl transition duration-150 cursor-pointer text-xs"
+                        >
+                          Cancelar
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            handleUpdateItemLogistics(
+                              logisticsCrmModal.budgetId,
+                              logisticsCrmModal.sectionId,
+                              logisticsCrmModal.itemId,
+                              {
+                                availability: logisticsCrmModal.availability,
+                                carrierName: logisticsCrmModal.carrierName || undefined,
+                                trackingNumber: logisticsCrmModal.trackingNumber || undefined,
+                                deliveryDate: logisticsCrmModal.deliveryDate || undefined,
+                                logisticsNotes: logisticsCrmModal.logisticsNotes || undefined
+                              }
+                            );
+                            setLogisticsCrmModal(null);
+                          }}
+                          className="bg-brand-navy hover:bg-brand-navy/90 text-white font-bold py-2 px-4 rounded-xl shadow-xs transition duration-150 cursor-pointer text-xs"
+                        >
+                          Guardar Cambios
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

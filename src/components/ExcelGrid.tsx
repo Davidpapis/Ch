@@ -29,7 +29,8 @@ import {
   Quote,
   Info,
   Briefcase,
-  Eye
+  Eye,
+  Truck
 } from 'lucide-react';
 import { BudgetSection, BudgetItem, Supplier, BudgetMetadata } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -65,6 +66,17 @@ export function ExcelGrid({
 
   // Track lightbox image URL preview
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+
+  // Track logistics editor details modal state
+  const [logisticsModalItem, setLogisticsModalItem] = useState<{
+    sectionId: string;
+    itemId: string;
+    description: string;
+    deliveryDate: string;
+    trackingNumber: string;
+    carrierName: string;
+    logisticsNotes: string;
+  } | null>(null);
 
   // Track which section header is being edited
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -1082,21 +1094,61 @@ export function ExcelGrid({
 
                                   {/* Availability Selector (Colored Badges - no entregado) */}
                                   <td className="py-2 px-2 text-center text-xs">
-                                    <select
-                                      value={item.availability || 'disponible'}
-                                      onChange={e => updateItemField(sec.id, item.id, 'availability', e.target.value as BudgetItem['availability'])}
-                                      className={`mx-auto block text-center py-1 px-2 border border-brand-sand-dark/65 rounded-lg font-bold uppercase font-mono tracking-wide text-[10px] cursor-pointer focus:outline-none transition-all duration-150 ${
-                                        item.availability === 'disponible' 
-                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/60' 
-                                          : item.availability === 'pedido'
-                                          ? 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100/60'
-                                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/60'
-                                      }`}
-                                    >
-                                      <option value="disponible">Disponible</option>
-                                      <option value="pedido">Pedido</option>
-                                      <option value="retrasado">Retrasado</option>
-                                    </select>
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <select
+                                        value={item.availability || 'disponible'}
+                                        onChange={e => {
+                                          const val = e.target.value as BudgetItem['availability'];
+                                          updateItemField(sec.id, item.id, 'availability', val);
+                                          // Auto-trigger details modal if marking as pedido/retrasado and no deliveryDate is set
+                                          if ((val === 'pedido' || val === 'retrasado') && !item.deliveryDate) {
+                                            setLogisticsModalItem({
+                                              sectionId: sec.id,
+                                              itemId: item.id,
+                                              description: item.description,
+                                              deliveryDate: item.deliveryDate || '',
+                                              trackingNumber: item.trackingNumber || '',
+                                              carrierName: item.carrierName || '',
+                                              logisticsNotes: item.logisticsNotes || ''
+                                            });
+                                          }
+                                        }}
+                                        className={`block text-center py-1 px-1.5 border border-brand-sand-dark/65 rounded-lg font-bold uppercase font-mono tracking-wide text-[10px] cursor-pointer focus:outline-none transition-all duration-150 ${
+                                          item.availability === 'disponible' 
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/60' 
+                                            : item.availability === 'pedido'
+                                            ? 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100/60'
+                                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/60'
+                                        }`}
+                                      >
+                                        <option value="disponible">Disponible</option>
+                                        <option value="pedido">Pedido</option>
+                                        <option value="retrasado">Retrasado</option>
+                                      </select>
+
+                                      {(item.availability === 'pedido' || item.availability === 'retrasado') && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setLogisticsModalItem({
+                                            sectionId: sec.id,
+                                            itemId: item.id,
+                                            description: item.description,
+                                            deliveryDate: item.deliveryDate || '',
+                                            trackingNumber: item.trackingNumber || '',
+                                            carrierName: item.carrierName || '',
+                                            logisticsNotes: item.logisticsNotes || ''
+                                          })}
+                                          className={`p-1.5 rounded-lg border transition duration-150 shrink-0 cursor-pointer ${
+                                            item.deliveryDate 
+                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/60' 
+                                              : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-brand-terracotta hover:border-brand-terracotta/40'
+                                          }`}
+                                          title="Detalles de logística, transportista y seguimiento"
+                                        >
+                                          <Truck className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
 
                                   {/* Quantity */}
@@ -1260,6 +1312,150 @@ export function ExcelGrid({
               >
                 <X className="w-5 h-5" />
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 📦 High-End Logistics Details Drawer Modal (no-print) */}
+      <AnimatePresence>
+        {logisticsModalItem && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-brand-navy/60 backdrop-blur-xs flex items-center justify-center p-4 no-print"
+            onClick={() => setLogisticsModalItem(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#FCFAF8] border border-brand-sand-dark rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-brand-sand/40 border-b border-brand-sand-dark px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-brand-sand rounded-lg text-brand-terracotta">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-brand-navy text-sm">
+                      Logística y Seguimiento
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      Detalles de envío para uso interno
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setLogisticsModalItem(null)}
+                  className="text-slate-400 hover:text-brand-navy p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <div className="p-6 space-y-4">
+                <div className="bg-brand-sand/15 p-3 rounded-xl border border-brand-sand-dark text-xs space-y-1">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-mono">Artículo seleccionado</span>
+                  <span className="font-serif font-bold text-brand-navy block leading-snug">{logisticsModalItem.description}</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Carrier Name */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Transportista / Agencia</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. SEUR, DHL, Correos..."
+                      value={logisticsModalItem.carrierName}
+                      onChange={e => setLogisticsModalItem(prev => prev ? { ...prev, carrierName: e.target.value } : null)}
+                      className="w-full bg-white border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none focus:border-brand-terracotta transition"
+                    />
+                  </div>
+
+                  {/* Tracking Number */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nº Seguimiento / Expedición</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. 123456789X"
+                      value={logisticsModalItem.trackingNumber}
+                      onChange={e => setLogisticsModalItem(prev => prev ? { ...prev, trackingNumber: e.target.value } : null)}
+                      className="w-full bg-white border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none focus:border-brand-terracotta font-mono transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Estimated Delivery Date */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
+                  <input
+                    type="date"
+                    value={logisticsModalItem.deliveryDate}
+                    onChange={e => setLogisticsModalItem(prev => prev ? { ...prev, deliveryDate: e.target.value } : null)}
+                    className="w-full bg-white border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none focus:border-brand-terracotta font-mono transition"
+                  />
+                </div>
+
+                {/* Logistics Call Log / Annotations */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Notas de Seguimiento e Incidencias</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Registra incidencias, llamadas al transportista o estado del retraso (ej. Retrasado en aduana)..."
+                    value={logisticsModalItem.logisticsNotes}
+                    onChange={e => setLogisticsModalItem(prev => prev ? { ...prev, logisticsNotes: e.target.value } : null)}
+                    className="w-full bg-white border border-brand-sand-dark rounded-xl px-3 py-2 text-xs text-brand-navy outline-none focus:border-brand-terracotta transition font-sans"
+                  />
+                </div>
+
+                {/* Quick actions & submit */}
+                <div className="pt-4 border-t border-brand-sand/55 flex flex-col sm:flex-row justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Mark as disponible/recibido
+                      updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'availability', 'disponible');
+                      updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'carrierName', logisticsModalItem.carrierName || undefined);
+                      updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'trackingNumber', logisticsModalItem.trackingNumber || undefined);
+                      updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'deliveryDate', logisticsModalItem.deliveryDate || undefined);
+                      updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'logisticsNotes', logisticsModalItem.logisticsNotes || undefined);
+                      setLogisticsModalItem(null);
+                    }}
+                    className="py-2 px-4 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition duration-150 cursor-pointer text-center"
+                  >
+                    Marcar como Recibido
+                  </button>
+
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setLogisticsModalItem(null)}
+                      className="py-2 px-4 rounded-xl text-xs font-bold text-brand-navy border border-brand-sand-dark hover:bg-brand-sand transition cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Save changes
+                        updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'carrierName', logisticsModalItem.carrierName || undefined);
+                        updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'trackingNumber', logisticsModalItem.trackingNumber || undefined);
+                        updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'deliveryDate', logisticsModalItem.deliveryDate || undefined);
+                        updateItemField(logisticsModalItem.sectionId, logisticsModalItem.itemId, 'logisticsNotes', logisticsModalItem.logisticsNotes || undefined);
+                        setLogisticsModalItem(null);
+                      }}
+                      className="py-2 px-5 rounded-xl text-xs font-bold text-white bg-brand-terracotta hover:bg-brand-terracotta-dark shadow-xs transition cursor-pointer"
+                    >
+                      Guardar Detalles
+                    </button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

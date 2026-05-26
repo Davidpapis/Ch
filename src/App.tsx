@@ -11,7 +11,9 @@ import {
   RotateCcw, 
   LayoutDashboard,
   Sparkles,
-  Briefcase
+  Briefcase,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { BudgetSection, BudgetMetadata, Supplier, Budget } from './types';
 import { INITIAL_SECTIONS, INITIAL_METADATA, INITIAL_BUDGETS, INITIAL_SUPPLIERS } from './initialData';
@@ -25,6 +27,25 @@ import { LandingPanel } from './components/LandingPanel';
 export default function App() {
   // Application Mode: 'landing' (multi-budget welcome), 'editor' (spreadsheet), 'client_budget' (premium proposal), or 'dashboard' (analysis)
   const [appMode, setAppMode] = useState<'landing' | 'editor' | 'client_budget' | 'dashboard'>('landing');
+
+  // Global theme state ('light' | 'dark')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    // Check system preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    return 'light';
+  });
+
+  // Apply class to html tag whenever theme changes
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // Multi-project budgets list
   const [budgets, setBudgets] = useState<Budget[]>(() => {
@@ -252,7 +273,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F4EF] p-4 sm:p-6 md:p-8 flex flex-col font-sans selection:bg-brand-terracotta selection:text-white print:p-0">
+    <div className="min-h-screen bg-bg-main p-4 sm:p-6 md:p-8 flex flex-col font-sans selection:bg-brand-terracotta selection:text-white print:p-0">
       
       {/* PROFESSIONAL APPLICATION MAIN HEADER (no-print) */}
       <header className="no-print max-w-7xl mx-auto w-full mb-6 border border-brand-sand-dark bg-white/95 backdrop-blur-md rounded-2xl py-3 px-6 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-xs">
@@ -330,8 +351,21 @@ export default function App() {
 
           <div className="h-6 w-px bg-brand-sand-dark hidden lg:block"></div>
 
-          {/* Demonstration controls */}
-          <div className="flex gap-1.5 shrink-0">
+          {/* Demonstration controls & Night/Day Toggle */}
+          <div className="flex gap-1.5 shrink-0 items-center">
+            {/* Elegant Luxury Theme Toggle */}
+            <button
+              onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+              className="p-2 text-brand-navy hover:bg-brand-sand dark:hover:bg-brand-navy rounded-lg border border-brand-sand-dark/60 transition cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 duration-200"
+              title={theme === 'light' ? 'Cambiar a Modo Noche' : 'Cambiar a Modo Día'}
+            >
+              {theme === 'light' ? (
+                <Moon className="w-4 h-4 text-brand-navy transition-all duration-350 transform hover:rotate-12" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-500 transition-all duration-350 transform hover:rotate-45" />
+              )}
+            </button>
+
             <button
               onClick={handleResetToDemo}
               className="p-2 text-slate-400 hover:text-brand-olive hover:bg-white rounded-lg border border-transparent hover:border-brand-sand-dark transition"

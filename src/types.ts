@@ -13,6 +13,10 @@ export interface BudgetItem {
   availability: 'disponible' | 'pedido' | 'retrasado'; // Estado actual (sin entregado)
   imageUrl?: string; // Fotografía conceptual del artículo/mobiliario
   reference?: string; // Referencia técnica para uso interno
+  deliveryDate?: string; // Fecha estimada de entrega (YYYY-MM-DD)
+  trackingNumber?: string; // Número de seguimiento/expedición
+  carrierName?: string; // Nombre del transportista
+  logisticsNotes?: string; // Anotaciones de logística o llamadas
 }
 
 export interface BudgetSection {
