@@ -92,7 +92,7 @@ export function LandingPanel({
 
   // Currency Formatter
   const formatEuro = (val: number) => {
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   };
 
   // Helper to extract quarter from date string YYYY-MM-DD

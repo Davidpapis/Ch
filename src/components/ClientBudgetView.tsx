@@ -146,7 +146,7 @@ export function ClientBudgetView({ sections, metadata, onUpdateMetadata, onBackT
 
   // Formatting helpers
   const formatEuro = (val: number) => {
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   };
 
   // Calculations

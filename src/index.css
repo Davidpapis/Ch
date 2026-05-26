@@ -96,6 +96,13 @@ html.dark .bg-\[\#FDFCFB\] {
   background-color: var(--brand-sand) !important;
 }
 
+html.dark .bg-\[\#FAF8F5\],
+html.dark .bg-\[\#FAF8F5\]\/80,
+html.dark .hover\:bg-\[\#FAF8F5\]:hover {
+  background-color: var(--brand-sand-light) !important;
+}
+
+
 html.dark .border-brand-sand-dark {
   border-color: var(--brand-sand-dark) !important;
 }

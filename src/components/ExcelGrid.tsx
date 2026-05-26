@@ -336,7 +336,7 @@ export function ExcelGrid({
 
   // Helper formatting values in Euro
   const formatEuro = (val: number) => {
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val);
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   };
 
   // Section Subtotals Helper
@@ -982,11 +982,11 @@ export function ExcelGrid({
                             <th className="py-2.5 px-3 w-[13%] text-left">Distribuidor</th>
                             <th className="py-2.5 px-3 w-[120px] text-center">Disponibilidad</th>
                             <th className="py-2.5 px-3 w-[60px] text-right">Cant.</th>
-                            <th className="py-2.5 px-3 w-[95px] text-right">Coste Unit.</th>
-                            <th className="py-2.5 px-3 w-[95px] text-right bg-slate-50/50">Coste Total</th>
-                            <th className="py-2.5 px-3 w-[95px] text-right">PVP Unit.</th>
-                            <th className="py-2.5 px-3 w-[95px] text-right bg-brand-sand-light/50">PVP Total</th>
-                            <th className="py-2.5 px-3 w-[85px] text-right">Beneficio</th>
+                            <th className="py-2.5 px-3 w-[100px] text-right">Coste U. (€)</th>
+                            <th className="py-2.5 px-3 w-[100px] text-right bg-slate-50/50">Coste T. (€)</th>
+                            <th className="py-2.5 px-3 w-[100px] text-right">PVP U. (€)</th>
+                            <th className="py-2.5 px-3 w-[100px] text-right bg-brand-sand-light/50">PVP T. (€)</th>
+                            <th className="py-2.5 px-3 w-[90px] text-right">Beneficio (€)</th>
                             <th className="py-2.5 px-2 w-[40px] text-center"></th>
                           </tr>
                         </thead>
@@ -1185,7 +1185,7 @@ export function ExcelGrid({
                                   </td>
 
                                   {/* Total investment (Calculated read-only) */}
-                                  <td className="py-2 px-3 text-sm text-right font-mono text-slate-500 bg-slate-50/40 font-medium whitespace-nowrap">
+                                  <td className="py-2 px-3 text-xs text-right font-mono text-slate-500 bg-slate-50/40 font-medium whitespace-nowrap">
                                     {formatEuro(itemInvestmentCost)}
                                   </td>
 
@@ -1208,12 +1208,12 @@ export function ExcelGrid({
                                   </td>
 
                                   {/* Total sale price (Calculated read-only) */}
-                                  <td className="py-2 px-3 text-sm text-right font-mono text-brand-navy bg-brand-sand/10 font-bold whitespace-nowrap">
+                                  <td className="py-2 px-3 text-xs text-right font-mono text-brand-navy bg-brand-sand/10 font-bold whitespace-nowrap">
                                     {formatEuro(itemRevenue)}
                                   </td>
 
                                   {/* Profit column (Calculated read-only) */}
-                                  <td className="py-2 px-3 text-sm text-right font-mono whitespace-nowrap">
+                                  <td className="py-2 px-3 text-xs text-right font-mono whitespace-nowrap">
                                     <div className={`font-semibold ${itemProfit >= 0 ? 'text-brand-olive' : 'text-brand-terracotta'}`}>
                                       {formatEuro(itemProfit)}
                                     </div>
