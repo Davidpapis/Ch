@@ -356,13 +356,13 @@ export default function App() {
             {/* Elegant Luxury Theme Toggle */}
             <button
               onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-              className="p-2 text-brand-navy hover:bg-brand-sand dark:hover:bg-brand-navy rounded-lg border border-brand-sand-dark/60 transition cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 duration-200"
+              className="p-2 text-brand-navy hover:bg-brand-navy hover:text-white dark:text-amber-400 dark:hover:bg-brand-sand dark:hover:text-amber-400 rounded-lg border border-brand-sand-dark/60 transition cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 duration-200"
               title={theme === 'light' ? 'Cambiar a Modo Noche' : 'Cambiar a Modo Día'}
             >
               {theme === 'light' ? (
-                <Moon className="w-4 h-4 text-brand-navy transition-all duration-350 transform hover:rotate-12" />
+                <Moon className="w-4 h-4 transition-all duration-350 transform hover:rotate-12" />
               ) : (
-                <Sun className="w-4 h-4 text-amber-500 transition-all duration-350 transform hover:rotate-45" />
+                <Sun className="w-4 h-4 transition-all duration-350 transform hover:rotate-45" />
               )}
             </button>
 

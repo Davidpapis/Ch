@@ -54,6 +54,7 @@ export function LandingPanel({
   const [quarterFilter, setQuarterFilter] = useState<string>('todos');
   const [crmViewMode, setCrmViewMode] = useState<'grouped' | 'list'>('grouped');
   const [crmSearchQuery, setCrmSearchQuery] = useState('');
+  const [crmSubTab, setCrmSubTab] = useState<'agenda' | 'tracking'>('agenda');
   
   // New budget dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -585,19 +586,35 @@ export function LandingPanel({
           onClick={() => {
             setActiveTab('crm');
             setCrmViewMode('grouped');
+            setCrmSubTab('agenda');
           }}
-          className="bg-white border border-brand-sand-dark p-5 rounded-2xl flex items-center justify-between shadow-xs hover:border-brand-terracotta cursor-pointer transition-all duration-200 group active:scale-98"
+          className={`bg-white border p-5 rounded-2xl flex items-center justify-between shadow-xs cursor-pointer transition-all duration-200 group active:scale-98 ${
+            alertOrders.length > 0
+              ? 'border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.12)] bg-red-50/10 animate-pulse-slow hover:border-red-400'
+              : 'border-brand-sand-dark hover:border-brand-terracotta'
+          }`}
         >
           <div>
-            <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 uppercase block group-hover:text-brand-terracotta transition">Pedidos Pendientes</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 uppercase block group-hover:text-brand-terracotta transition">Pedidos Pendientes</span>
+              {alertOrders.length > 0 && (
+                <span className="bg-red-600 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full shrink-0 animate-bounce">
+                  ALERTA
+                </span>
+              )}
+            </div>
             <span className="text-xl md:text-2xl font-bold font-display text-brand-navy block mt-1 font-mono">
               {pendingOrders.length} Artículos
             </span>
-            <span className="text-xs text-brand-terracotta font-serif font-bold block mt-0.5">
-              En tránsito por recibir
+            <span className={`text-xs font-serif font-bold block mt-0.5 ${alertOrders.length > 0 ? 'text-red-600' : 'text-brand-terracotta'}`}>
+              {alertOrders.length > 0 ? `${alertOrders.length} con incidencias/alertas` : 'En tránsito por recibir'}
             </span>
           </div>
-          <div className="p-3 bg-brand-sand rounded-xl text-brand-olive group-hover:bg-brand-terracotta/10 group-hover:text-brand-terracotta shrink-0 transition-all duration-200">
+          <div className={`p-3 rounded-xl shrink-0 transition-all duration-200 ${
+            alertOrders.length > 0
+              ? 'bg-red-100 text-red-600 group-hover:bg-red-200'
+              : 'bg-brand-sand text-brand-olive group-hover:bg-brand-terracotta/10 group-hover:text-brand-terracotta'
+          }`}>
             <Truck className="w-6 h-6" />
           </div>
         </div>
@@ -841,7 +858,7 @@ export function LandingPanel({
           {activeTab === 'crm' && (
             <div className="space-y-6 animate-fadeIn">
               
-              {/* Header Selector dual-view */}
+              {/* Header Selector sub-tabs */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FAF7F2] border border-brand-sand-dark/60 p-5 rounded-2xl shadow-xs">
                 <div className="space-y-1">
                   <h4 className="font-serif font-bold text-brand-navy text-sm flex items-center gap-1.5">
@@ -849,87 +866,145 @@ export function LandingPanel({
                     Gestión Logística & Control de Mercancías
                   </h4>
                   <p className="text-slate-500 text-xs pl-5.5">
-                    Controla y supervisa los artículos de todos tus proyectos activos en estado <b>"Pedido"</b> o <b>"Retrasado"</b>.
+                    Planifica y supervisa las entregas de todas las obras del estudio en tránsito.
                   </p>
                 </div>
 
-                {/* Alternador de Vista Estilo Premium */}
+                {/* Subtabs Selector inside CRM */}
                 <div className="flex items-center bg-white border border-brand-sand-dark rounded-xl p-1 shrink-0 shadow-xs self-start md:self-auto">
                   <button
-                    onClick={() => setCrmViewMode('grouped')}
+                    onClick={() => setCrmSubTab('agenda')}
                     className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
-                      crmViewMode === 'grouped'
+                      crmSubTab === 'agenda'
                         ? 'bg-brand-navy text-white shadow-xs'
                         : 'text-slate-500 hover:text-brand-navy'
                     }`}
                   >
-                    <Briefcase className="w-3.5 h-3.5" />
-                    Agrupado por Proyecto
+                    <Calendar className="w-3.5 h-3.5 text-brand-terracotta" />
+                    Agenda de Entregas
                   </button>
                   <button
-                    onClick={() => setCrmViewMode('list')}
+                    onClick={() => setCrmSubTab('tracking')}
                     className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
-                      crmViewMode === 'list'
+                      crmSubTab === 'tracking'
                         ? 'bg-brand-navy text-white shadow-xs'
                         : 'text-slate-500 hover:text-brand-navy'
                     }`}
                   >
-                    <Search className="w-3.5 h-3.5" />
-                    Lista unificada
+                    <Briefcase className="w-3.5 h-3.5 text-brand-olive" />
+                    Listado de Artículos
                   </button>
                 </div>
               </div>
 
-              {/* Calendario & Agenda Logística Widget */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-brand-sand-dark/60 pb-2">
-                  <h4 className="font-serif font-bold text-brand-navy text-xs tracking-wider uppercase flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-brand-terracotta" />
-                    Agenda de Entregas & Entradas Semanales
-                  </h4>
-                  <span className="text-[10px] text-slate-500 font-mono bg-white px-2 py-0.5 rounded border border-brand-sand-dark">
-                    Hoy: {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
-                  </span>
-                </div>
+              {crmSubTab === 'agenda' ? (
+                /* SUB-TAB 1: AGENDA SEMANAL DE ENTREGAS */
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-brand-sand-dark/60 pb-2">
+                    <h4 className="font-serif font-bold text-brand-navy text-xs tracking-wider uppercase flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-brand-terracotta" />
+                      Planificación & Entradas Semanales
+                    </h4>
+                    <span className="text-[10px] text-slate-500 font-mono bg-white px-2 py-0.5 rounded border border-brand-sand-dark">
+                      Hoy: {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* COLUMNA 1: ALERTAS (GLOBO ROJO) */}
-                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
-                    <div className="bg-gradient-to-r from-red-600 to-rose-500 text-white px-4 py-3 flex justify-between items-center shadow-xs">
-                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Incidencias / Alertas
-                      </span>
-                      {alertOrders.length > 0 ? (
-                        <span className="flex h-4 w-4 relative">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-4 w-4 bg-white text-red-600 font-mono font-bold text-[9px] items-center justify-center">
-                            {alertOrders.length}
-                          </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* COLUMNA 1: ALERTAS (GLOBO ROJO) */}
+                    <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                      <div className="bg-gradient-to-r from-red-600 to-rose-500 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                        <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Incidencias / Alertas
                         </span>
-                      ) : (
-                        <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">0</span>
-                      )}
+                        {alertOrders.length > 0 ? (
+                          <span className="flex h-4 w-4 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-4 w-4 bg-white text-red-600 font-mono font-bold text-[9px] items-center justify-center">
+                              {alertOrders.length}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">0</span>
+                        )}
+                      </div>
+                      <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[420px] overflow-y-auto min-h-[150px]">
+                        {alertOrders.length === 0 ? (
+                          <div className="text-center py-12 text-slate-400 text-xs italic">Sin alertas ni retrasos</div>
+                        ) : (
+                          alertOrders.map((ord, idx) => {
+                            const isOverdue = ord.deliveryDate && ord.deliveryDate < dateInfo.todayStr;
+                            const isDelayed = ord.availability === 'retrasado';
+                            const isUnscheduled = !ord.deliveryDate;
+                            return (
+                              <div 
+                                key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                                onClick={() => setLogisticsCrmModal({ ...ord })}
+                                className="bg-white border border-red-100 hover:border-red-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                              >
+                                <div className="flex justify-between items-start gap-1">
+                                  <span className="font-bold text-brand-navy text-[11px] group-hover:text-red-600 transition leading-snug line-clamp-2">
+                                    {ord.description}
+                                  </span>
+                                  <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-red-50 text-red-600 px-1 rounded">
+                                    x{ord.quantity}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                    <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                    {ord.projectName}
+                                  </span>
+                                  <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                    {ord.distributor}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
+                                  <span className="font-mono text-slate-400 flex items-center gap-0.5">
+                                    <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                    {ord.deliveryDate ? ord.deliveryDate : 'Sin fecha'}
+                                  </span>
+                                  <span className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded-full text-[8px] font-bold border border-red-100 flex items-center gap-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
+                                    {isDelayed ? 'RETRASADO' : isOverdue ? 'FUERA DE PLAZO' : 'SIN FECHA'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
-                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
-                      {alertOrders.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 text-xs italic">Sin alertas ni retrasos</div>
-                      ) : (
-                        alertOrders.map((ord, idx) => {
-                          const isOverdue = ord.deliveryDate && ord.deliveryDate < dateInfo.todayStr;
-                          const isDelayed = ord.availability === 'retrasado';
-                          const isUnscheduled = !ord.deliveryDate;
-                          return (
+
+                    {/* COLUMNA 2: LLEGA HOY */}
+                    <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                      <div className="bg-gradient-to-r from-brand-terracotta to-amber-600 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                        <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5" />
+                          Llega Hoy
+                        </span>
+                        <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
+                          {todayOrders.length}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[420px] overflow-y-auto min-h-[150px]">
+                        {todayOrders.length === 0 ? (
+                          <div className="text-center py-12 text-slate-400 text-xs italic">Ningún pedido para hoy</div>
+                        ) : (
+                          todayOrders.map((ord, idx) => (
                             <div 
                               key={`${ord.budgetId}-${ord.itemId}-${idx}`}
                               onClick={() => setLogisticsCrmModal({ ...ord })}
-                              className="bg-white border border-red-100 hover:border-red-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                              className="bg-white border border-amber-100 hover:border-amber-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
                             >
                               <div className="flex justify-between items-start gap-1">
-                                <span className="font-bold text-brand-navy text-[11px] group-hover:text-red-600 transition leading-snug line-clamp-2">
+                                <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-terracotta transition leading-snug line-clamp-2">
                                   {ord.description}
                                 </span>
-                                <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-red-50 text-red-600 px-1 rounded">
+                                <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-amber-50 text-amber-700 px-1 rounded">
                                   x{ord.quantity}
                                 </span>
                               </div>
@@ -945,382 +1020,355 @@ export function LandingPanel({
                               </div>
 
                               <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
-                                <span className="font-mono text-slate-400 flex items-center gap-0.5">
-                                  <Clock className="w-2.5 h-2.5 text-slate-400" />
-                                  {ord.deliveryDate ? ord.deliveryDate : 'Sin fecha'}
+                                <span className="font-mono text-amber-600 flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5 text-amber-500" />
+                                  HOY
                                 </span>
-                                <span className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded-full text-[8px] font-bold border border-red-100 flex items-center gap-0.5">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
-                                  {isDelayed ? 'RETRASADO' : isOverdue ? 'FUERA DE PLAZO' : 'SIN FECHA'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  {/* COLUMNA 2: LLEGA HOY */}
-                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
-                    <div className="bg-gradient-to-r from-brand-terracotta to-amber-600 text-white px-4 py-3 flex justify-between items-center shadow-xs">
-                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5" />
-                        Llega Hoy
-                      </span>
-                      <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
-                        {todayOrders.length}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
-                      {todayOrders.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 text-xs italic">Ningún pedido para hoy</div>
-                      ) : (
-                        todayOrders.map((ord, idx) => (
-                          <div 
-                            key={`${ord.budgetId}-${ord.itemId}-${idx}`}
-                            onClick={() => setLogisticsCrmModal({ ...ord })}
-                            className="bg-white border border-amber-100 hover:border-amber-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
-                          >
-                            <div className="flex justify-between items-start gap-1">
-                              <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-terracotta transition leading-snug line-clamp-2">
-                                {ord.description}
-                              </span>
-                              <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-amber-50 text-amber-700 px-1 rounded">
-                                x{ord.quantity}
-                              </span>
-                            </div>
-                            
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
-                                <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
-                                {ord.projectName}
-                              </span>
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
-                                {ord.distributor}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
-                              <span className="font-mono text-amber-600 flex items-center gap-0.5">
-                                <Clock className="w-2.5 h-2.5 text-amber-500" />
-                                HOY
-                              </span>
-                              {ord.carrierName && (
-                                <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
-                                  {ord.carrierName}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* COLUMNA 3: LLEGA MAÑANA */}
-                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
-                    <div className="bg-gradient-to-r from-brand-olive to-emerald-700 text-white px-4 py-3 flex justify-between items-center shadow-xs">
-                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" />
-                        Llega Mañana
-                      </span>
-                      <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
-                        {tomorrowOrders.length}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
-                      {tomorrowOrders.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 text-xs italic">Ningún pedido para mañana</div>
-                      ) : (
-                        tomorrowOrders.map((ord, idx) => (
-                          <div 
-                            key={`${ord.budgetId}-${ord.itemId}-${idx}`}
-                            onClick={() => setLogisticsCrmModal({ ...ord })}
-                            className="bg-white border border-emerald-100 hover:border-emerald-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
-                          >
-                            <div className="flex justify-between items-start gap-1">
-                              <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-olive transition leading-snug line-clamp-2">
-                                {ord.description}
-                              </span>
-                              <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-emerald-50 text-emerald-700 px-1 rounded">
-                                x{ord.quantity}
-                              </span>
-                            </div>
-                            
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
-                                <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
-                                {ord.projectName}
-                              </span>
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
-                                {ord.distributor}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
-                              <span className="font-mono text-emerald-600 flex items-center gap-0.5">
-                                <Clock className="w-2.5 h-2.5 text-emerald-500" />
-                                MAÑANA
-                              </span>
-                              {ord.carrierName && (
-                                <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
-                                  {ord.carrierName}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* COLUMNA 4: PROXIMAS ENTREGAS */}
-                  <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
-                    <div className="bg-gradient-to-r from-brand-navy to-slate-700 text-white px-4 py-3 flex justify-between items-center shadow-xs">
-                      <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" />
-                        Próximas Semanas
-                      </span>
-                      <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
-                        {weekOrders.length}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[320px] overflow-y-auto min-h-[120px]">
-                      {weekOrders.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 text-xs italic">Ninguna entrega programada</div>
-                      ) : (
-                        weekOrders.map((ord, idx) => (
-                          <div 
-                            key={`${ord.budgetId}-${ord.itemId}-${idx}`}
-                            onClick={() => setLogisticsCrmModal({ ...ord })}
-                            className="bg-white border border-slate-100 hover:border-brand-navy hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
-                          >
-                            <div className="flex justify-between items-start gap-1">
-                              <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-navy transition leading-snug line-clamp-2">
-                                {ord.description}
-                              </span>
-                              <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-slate-50 text-slate-700 px-1 rounded">
-                                x{ord.quantity}
-                              </span>
-                            </div>
-                            
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
-                                <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
-                                {ord.projectName}
-                              </span>
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
-                                {ord.distributor}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold text-slate-400">
-                              <span className="font-mono flex items-center gap-0.5">
-                                <Clock className="w-2.5 h-2.5 text-slate-400" />
-                                {ord.deliveryDate}
-                              </span>
-                              {ord.carrierName && (
-                                <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
-                                  {ord.carrierName}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Barra de búsqueda para CRM si hay artículos en total */}
-              {pendingOrders.length > 0 && (
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={crmSearchQuery}
-                    onChange={e => setCrmSearchQuery(e.target.value)}
-                    placeholder="Buscar por artículo, proyecto, distribuidor, referencia..."
-                    className="w-full pl-10 pr-4 py-2.5 border border-brand-sand-dark rounded-xl text-xs text-brand-navy outline-none bg-[#FCFAF8] focus:border-brand-terracotta transition"
-                  />
-                  {crmSearchQuery && (
-                    <button
-                      onClick={() => setCrmSearchQuery('')}
-                      className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-brand-navy"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Contenido según vista seleccionada */}
-              {filteredCrmOrders.length === 0 ? (
-                <div className="text-center py-16 bg-white border border-brand-sand-dark rounded-2xl shadow-xs p-6 space-y-3">
-                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-6 h-6" />
-                  </div>
-                  <h5 className="font-serif font-bold text-brand-navy text-base">¡Logística al día!</h5>
-                  <p className="text-slate-400 text-xs max-w-md mx-auto">
-                    {crmSearchQuery 
-                      ? 'No hay artículos en tránsito que coincidan con los criterios de búsqueda actuales.'
-                      : 'No tienes ningún artículo marcado como "Pedido" o "Retrasado" en ninguna de tus obras de interiorismo activas.'
-                    }
-                  </p>
-                  {crmSearchQuery && (
-                    <button
-                      onClick={() => setCrmSearchQuery('')}
-                      className="text-xs font-bold text-brand-terracotta hover:underline mt-2 block mx-auto cursor-pointer"
-                    >
-                      Limpiar Filtro de Búsqueda
-                    </button>
-                  )}
-                </div>
-              ) : crmViewMode === 'grouped' ? (
-                /* VISTA AGRUPADA POR PROYECTO */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {ordersGroupedByProject.map(group => (
-                    <div 
-                      key={group.budgetId} 
-                      className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col hover:border-brand-olive transition-all duration-200"
-                    >
-                      {/* Cabecera del Proyecto */}
-                      <div className="bg-brand-sand/15 border-b border-brand-sand-dark/60 p-4 flex justify-between items-center">
-                        <div className="space-y-0.5">
-                          <h4 className="font-serif font-bold text-brand-navy text-sm">{group.projectName}</h4>
-                          <span className="text-[10px] font-mono text-brand-olive font-bold block">{group.budgetNumber}</span>
-                        </div>
-                        <span className="bg-brand-terracotta/10 text-brand-terracotta text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full shrink-0">
-                          {group.items.length} {group.items.length === 1 ? 'artículo' : 'artículos'}
-                        </span>
-                      </div>
-
-                      {/* Lista de Artículos */}
-                      <div className="p-4 flex-1 space-y-3">
-                        {group.items.map(it => (
-                          <div 
-                            key={it.itemId} 
-                            onClick={() => setLogisticsCrmModal({ ...it })}
-                            className="flex items-start justify-between gap-3 text-xs p-3 bg-brand-sand/5 hover:bg-brand-sand/15 border border-brand-sand-dark/30 rounded-xl transition duration-150 cursor-pointer"
-                          >
-                            <div className="space-y-1.5">
-                              <p className="font-bold text-brand-navy leading-snug">{it.description}</p>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {it.reference && (
-                                  <span className="bg-brand-navy/5 text-brand-navy border border-brand-navy/10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
-                                    REF: {it.reference}
+                                {ord.carrierName && (
+                                  <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
+                                    {ord.carrierName}
                                   </span>
                                 )}
-                                <span className="bg-brand-sand-dark/40 text-brand-navy text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
-                                  {it.distributor}
-                                </span>
                               </div>
                             </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
 
-                            <div className="text-right shrink-0 space-y-1.5">
-                              <span className="font-mono font-bold text-brand-navy block">{it.quantity} uds</span>
-                              <div className="space-y-1 text-right">
-                                <span className={`inline-flex items-center gap-1 text-[9px] font-bold rounded-full px-2 py-0.5 ${
-                                  it.availability === 'retrasado'
+                    {/* COLUMNA 3: LLEGA MAÑANA */}
+                    <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                      <div className="bg-gradient-to-r from-brand-olive to-emerald-700 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                        <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          Llega Mañana
+                        </span>
+                        <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
+                          {tomorrowOrders.length}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[420px] overflow-y-auto min-h-[150px]">
+                        {tomorrowOrders.length === 0 ? (
+                          <div className="text-center py-12 text-slate-400 text-xs italic">Ningún pedido para mañana</div>
+                        ) : (
+                          tomorrowOrders.map((ord, idx) => (
+                            <div 
+                              key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                              onClick={() => setLogisticsCrmModal({ ...ord })}
+                              className="bg-white border border-emerald-100 hover:border-emerald-400 hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-olive transition leading-snug line-clamp-2">
+                                  {ord.description}
+                                </span>
+                                <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-emerald-50 text-emerald-700 px-1 rounded">
+                                  x{ord.quantity}
+                                </span>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                  <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                  {ord.projectName}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                  {ord.distributor}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold">
+                                <span className="font-mono text-emerald-600 flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5 text-emerald-500" />
+                                  MAÑANA
+                                </span>
+                                {ord.carrierName && (
+                                  <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
+                                    {ord.carrierName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* COLUMNA 4: PROXIMAS ENTREGAS */}
+                    <div className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col">
+                      <div className="bg-gradient-to-r from-brand-navy to-slate-700 text-white px-4 py-3 flex justify-between items-center shadow-xs">
+                        <span className="text-xs font-bold font-serif tracking-wide flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          Próximas Semanas
+                        </span>
+                        <span className="bg-white/20 text-white font-mono font-bold text-[9px] px-2 py-0.5 rounded">
+                          {weekOrders.length}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-[#FDFCFB] flex-1 space-y-2.5 max-h-[420px] overflow-y-auto min-h-[150px]">
+                        {weekOrders.length === 0 ? (
+                          <div className="text-center py-12 text-slate-400 text-xs italic">Ninguna entrega programada</div>
+                        ) : (
+                          weekOrders.map((ord, idx) => (
+                            <div 
+                              key={`${ord.budgetId}-${ord.itemId}-${idx}`}
+                              onClick={() => setLogisticsCrmModal({ ...ord })}
+                              className="bg-white border border-slate-100 hover:border-brand-navy hover:shadow-xs p-3 rounded-xl transition duration-150 cursor-pointer space-y-1.5 text-left group"
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="font-bold text-brand-navy text-[11px] group-hover:text-brand-navy transition leading-snug line-clamp-2">
+                                  {ord.description}
+                                </span>
+                                <span className="font-mono font-bold text-brand-navy text-[10px] shrink-0 bg-slate-50 text-slate-700 px-1 rounded">
+                                  x{ord.quantity}
+                                </span>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="bg-brand-sand/60 px-1.5 py-0.5 rounded text-[8px] font-mono text-brand-navy font-bold flex items-center gap-0.5">
+                                  <Briefcase className="w-2 h-2 shrink-0 text-slate-500" />
+                                  {ord.projectName}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold">
+                                  {ord.distributor}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-100/70 text-[9px] font-semibold text-slate-400">
+                                <span className="font-mono flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                  {ord.deliveryDate}
+                                </span>
+                                {ord.carrierName && (
+                                  <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono truncate max-w-[80px]">
+                                    {ord.carrierName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* SUB-TAB 2: LISTADOS DE SEGUIMIENTO DE ARTÍCULOS */
+                <div className="space-y-4 animate-fadeIn">
+                  
+                  {/* Barra de búsqueda y selector de visualización en una sola fila */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FAF7F2] border border-brand-sand-dark/60 p-4 rounded-2xl shadow-3xs">
+                    <div className="relative flex-1 max-w-lg">
+                      <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={crmSearchQuery}
+                        onChange={e => setCrmSearchQuery(e.target.value)}
+                        placeholder="Buscar por artículo, proyecto, distribuidor, referencia..."
+                        className="w-full pl-10 pr-8 py-2 border border-brand-sand-dark rounded-xl text-xs text-brand-navy outline-none bg-white focus:border-brand-terracotta transition"
+                      />
+                      {crmSearchQuery && (
+                        <button
+                          onClick={() => setCrmSearchQuery('')}
+                          className="absolute right-3 top-2 p-1 text-slate-400 hover:text-brand-navy"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center bg-white border border-brand-sand-dark rounded-xl p-1 shrink-0 shadow-3xs">
+                      <button
+                        onClick={() => setCrmViewMode('grouped')}
+                        className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                          crmViewMode === 'grouped'
+                            ? 'bg-brand-navy text-white shadow-xs'
+                            : 'text-slate-500 hover:text-brand-navy'
+                        }`}
+                      >
+                        <Briefcase className="w-3.5 h-3.5" />
+                        Agrupado por Proyecto
+                      </button>
+                      <button
+                        onClick={() => setCrmViewMode('list')}
+                        className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                          crmViewMode === 'list'
+                            ? 'bg-brand-navy text-white shadow-xs'
+                            : 'text-slate-500 hover:text-brand-navy'
+                        }`}
+                      >
+                        <Search className="w-3.5 h-3.5" />
+                        Lista unificada
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Contenido según vista seleccionada */}
+                  {filteredCrmOrders.length === 0 ? (
+                    <div className="text-center py-16 bg-white border border-brand-sand-dark rounded-2xl shadow-xs p-6 space-y-3">
+                      <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle className="w-6 h-6" />
+                      </div>
+                      <h5 className="font-serif font-bold text-brand-navy text-base">¡Logística al día!</h5>
+                      <p className="text-slate-400 text-xs max-w-md mx-auto">
+                        {crmSearchQuery 
+                          ? 'No hay artículos en tránsito que coincidan con los criterios de búsqueda actuales.'
+                          : 'No tienes ningún artículo marcado como "Pedido" o "Retrasado" en ninguna de tus obras de interiorismo activas.'
+                        }
+                      </p>
+                      {crmSearchQuery && (
+                        <button
+                          onClick={() => setCrmSearchQuery('')}
+                          className="text-xs font-bold text-brand-terracotta hover:underline mt-2 block mx-auto cursor-pointer"
+                        >
+                          Limpiar Filtro de Búsqueda
+                        </button>
+                      )}
+                    </div>
+                  ) : crmViewMode === 'grouped' ? (
+                    /* VISTA AGRUPADA POR PROYECTO */
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {ordersGroupedByProject.map(group => (
+                        <div 
+                          key={group.budgetId} 
+                          className="bg-white border border-brand-sand-dark rounded-2xl shadow-xs overflow-hidden flex flex-col hover:border-brand-olive transition-all duration-200"
+                        >
+                          {/* Cabecera del Proyecto */}
+                          <div className="bg-brand-sand/15 border-b border-brand-sand-dark/60 p-4 flex justify-between items-center">
+                            <div className="space-y-0.5">
+                              <h4 className="font-serif font-bold text-brand-navy text-sm">{group.projectName}</h4>
+                              <span className="text-[10px] font-mono text-brand-olive font-bold block">{group.budgetNumber}</span>
+                            </div>
+                            <span className="bg-brand-terracotta/10 text-brand-terracotta text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full shrink-0">
+                              {group.items.length} {group.items.length === 1 ? 'artículo' : 'artículos'}
+                            </span>
+                          </div>
+
+                          {/* Lista de Artículos */}
+                          <div className="p-4 flex-1 space-y-3">
+                            {group.items.map(it => (
+                              <div 
+                                key={it.itemId} 
+                                onClick={() => setLogisticsCrmModal({ ...it })}
+                                className="flex items-start justify-between gap-3 text-xs p-3 bg-brand-sand/5 hover:bg-brand-sand/15 border border-brand-sand-dark/30 rounded-xl transition duration-150 cursor-pointer"
+                              >
+                                <div className="space-y-1.5">
+                                  <p className="font-bold text-brand-navy leading-snug">{it.description}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {it.reference && (
+                                      <span className="bg-brand-navy/5 text-brand-navy border border-brand-navy/10 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                                        REF: {it.reference}
+                                      </span>
+                                    )}
+                                    <span className="bg-brand-sand-dark/40 text-brand-navy text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                                      {it.distributor}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0 space-y-1.5">
+                                  <span className="font-mono font-bold text-brand-navy block">{it.quantity} uds</span>
+                                  <div className="space-y-1 text-right">
+                                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold rounded-full px-2 py-0.5 ${
+                                      it.availability === 'retrasado'
+                                        ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                        : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                    }`}>
+                                      {it.availability === 'retrasado' ? <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> : <Clock className="w-2.5 h-2.5 shrink-0" />}
+                                      {it.availability === 'retrasado' ? 'RETRASADO' : 'PEDIDO'}
+                                    </span>
+                                    {it.deliveryDate && (
+                                      <span className="block text-[8px] font-mono text-slate-400 text-right">{it.deliveryDate}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Pie con Enlace Directo */}
+                          <div className="bg-[#FAF7F2] border-t border-brand-sand-dark/40 p-3 text-right">
+                            <button
+                              onClick={() => { onSelectBudget(group.budgetId); onEnterEditor(); }}
+                              className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
+                            >
+                              Gestionar Obra / Abrir Excel
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* VISTA DE LISTA UNIFICADA (TABLA PLANA) */
+                    <div className="overflow-x-auto border border-brand-sand-dark rounded-2xl bg-white shadow-xs">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-brand-sand-dark text-brand-olive font-bold uppercase tracking-wider text-[10px] pb-2 font-mono bg-brand-sand/10">
+                            <th className="py-3 px-4">Artículo / Descripción</th>
+                            <th className="py-3 px-4">Obra / Proyecto</th>
+                            <th className="py-3 px-4">Distribuidor</th>
+                            <th className="py-3 px-4 text-right">Cant.</th>
+                            <th className="py-3 px-4">Fecha Estimada</th>
+                            <th className="py-3 px-4">Estado Logístico</th>
+                            <th className="py-3 px-4 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-sand-dark/50 text-brand-charcoal font-medium">
+                          {filteredCrmOrders.map((ord, idx) => (
+                            <tr key={`${ord.budgetId}-${ord.itemId}-${idx}`} className="hover:bg-brand-sand/15 transition duration-150">
+                              <td className="py-3 px-4">
+                                <div className="font-bold text-brand-navy">{ord.description}</div>
+                                {ord.reference && (
+                                  <span className="inline-block mt-1 bg-brand-navy/5 text-brand-navy border border-brand-navy/10 text-[9px] font-mono px-1.5 py-0.5 rounded font-bold">
+                                    REF: {ord.reference}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="font-serif font-bold text-brand-navy">{ord.projectName}</div>
+                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">{ord.budgetNumber}</div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="bg-brand-sand px-2 py-0.5 rounded text-[10px] font-mono text-brand-navy font-bold">{ord.distributor}</span>
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono font-bold text-brand-navy">{ord.quantity}</td>
+                              <td className="py-3 px-4 font-mono text-[10px] text-slate-600">
+                                {ord.deliveryDate || <span className="text-slate-400 italic">No programada</span>}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${
+                                  ord.availability === 'retrasado'
                                     ? 'bg-rose-50 text-rose-700 border border-rose-100'
                                     : 'bg-blue-50 text-blue-700 border border-blue-100'
                                 }`}>
-                                  {it.availability === 'retrasado' ? <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> : <Clock className="w-2.5 h-2.5 shrink-0" />}
-                                  {it.availability === 'retrasado' ? 'RETRASADO' : 'PEDIDO'}
+                                  {ord.availability === 'retrasado' ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
+                                  {ord.availability.toUpperCase()}
                                 </span>
-                                {it.deliveryDate && (
-                                  <span className="block text-[8px] font-mono text-slate-400 text-right">{it.deliveryDate}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Pie con Enlace Directo */}
-                      <div className="bg-[#FAF7F2] border-t border-brand-sand-dark/40 p-3 text-right">
-                        <button
-                          onClick={() => { onSelectBudget(group.budgetId); onEnterEditor(); }}
-                          className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
-                        >
-                          Gestionar Obra / Abrir Excel
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => setLogisticsCrmModal({ ...ord })}
+                                    className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
+                                  >
+                                    <Truck className="w-3.5 h-3.5 text-brand-terracotta" />
+                                    Logística
+                                  </button>
+                                  <button
+                                    onClick={() => { onSelectBudget(ord.budgetId); onEnterEditor(); }}
+                                    className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
+                                  >
+                                    Ir al Proyecto
+                                    <ArrowRight className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                /* VISTA DE LISTA UNIFICADA (TABLA PLANA) */
-                <div className="overflow-x-auto border border-brand-sand-dark rounded-2xl bg-white shadow-xs">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-brand-sand-dark text-brand-olive font-bold uppercase tracking-wider text-[10px] pb-2 font-mono bg-brand-sand/10">
-                        <th className="py-3 px-4">Artículo / Descripción</th>
-                        <th className="py-3 px-4">Obra / Proyecto</th>
-                        <th className="py-3 px-4">Distribuidor</th>
-                        <th className="py-3 px-4 text-right">Cant.</th>
-                        <th className="py-3 px-4">Fecha Estimada</th>
-                        <th className="py-3 px-4">Estado Logístico</th>
-                        <th className="py-3 px-4 text-right">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-brand-sand-dark/50 text-brand-charcoal font-medium">
-                      {filteredCrmOrders.map((ord, idx) => (
-                        <tr key={`${ord.budgetId}-${ord.itemId}-${idx}`} className="hover:bg-brand-sand/15 transition duration-150">
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-brand-navy">{ord.description}</div>
-                            {ord.reference && (
-                              <span className="inline-block mt-1 bg-brand-navy/5 text-brand-navy border border-brand-navy/10 text-[9px] font-mono px-1.5 py-0.5 rounded font-bold">
-                                REF: {ord.reference}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-serif font-bold text-brand-navy">{ord.projectName}</div>
-                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">{ord.budgetNumber}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="bg-brand-sand px-2 py-0.5 rounded text-[10px] font-mono text-brand-navy font-bold">{ord.distributor}</span>
-                          </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-brand-navy">{ord.quantity}</td>
-                          <td className="py-3 px-4 font-mono text-[10px] text-slate-600">
-                            {ord.deliveryDate || <span className="text-slate-400 italic">No programada</span>}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${
-                              ord.availability === 'retrasado'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                                : 'bg-blue-50 text-blue-700 border border-blue-100'
-                            }`}>
-                              {ord.availability === 'retrasado' ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
-                              {ord.availability.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => setLogisticsCrmModal({ ...ord })}
-                                className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
-                              >
-                                <Truck className="w-3.5 h-3.5 text-brand-terracotta" />
-                                Logística
-                              </button>
-                              <button
-                                onClick={() => { onSelectBudget(ord.budgetId); onEnterEditor(); }}
-                                className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-brand-sand-dark bg-white hover:bg-brand-sand text-[10px] font-bold text-brand-navy hover:scale-102 transition duration-200 cursor-pointer active:scale-97"
-                              >
-                                Ir al Proyecto
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  )}
                 </div>
               )}
 

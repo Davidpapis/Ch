@@ -104,6 +104,47 @@ html.dark .divide-brand-sand-dark > * {
   border-color: var(--brand-sand-dark) !important;
 }
 
+/* Perfect contrast text overrides in dark mode */
+html.dark .text-brand-navy {
+  color: var(--brand-navy) !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-700,
+html.dark .text-slate-800 {
+  color: #94A3B8 !important; /* Extremely readable soft slate grey */
+}
+
+html.dark .text-slate-900 {
+  color: #F8FAFC !important; /* Near white for maximum readability */
+}
+
+/* Badge and micro-elements background corrections */
+html.dark .bg-slate-50,
+html.dark .bg-slate-100,
+html.dark .bg-slate-200 {
+  background-color: #222C37 !important;
+  color: #CBD5E1 !important;
+  border-color: #2E3B4B !important;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+  border-color: var(--brand-sand-dark) !important;
+}
+
+/* Sand container backgrounds inside dark mode cards */
+html.dark .bg-brand-sand\/5,
+html.dark .bg-brand-sand\/15 {
+  background-color: rgba(34, 44, 55, 0.4) !important;
+}
+
+/* Glassmorphism adjustment for dark mode */
+html.dark .premium-glass {
+  background: rgba(22, 28, 35, 0.9) !important;
+  border-color: rgba(42, 52, 63, 0.6) !important;
+}
+
 /* Custom Scrollbar for a luxurious feel */
 ::-webkit-scrollbar {
   width: 8px;
